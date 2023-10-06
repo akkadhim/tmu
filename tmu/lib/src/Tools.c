@@ -67,16 +67,8 @@ void tmu_produce_autoencoder_example(
 	if ((indptr_col[active_output[target]+1] - indptr_col[active_output[target]] == 0) || (indptr_col[active_output[target]+1] - indptr_col[active_output[target]] == number_of_rows)) {
 		// If no positive/negative examples, produce a random example
 		for (int a = 0; a < accumulation; ++a) {
-			row = rand() % number_of_rows;
-			for (int k = indptr_row[row]; k < indptr_row[row+1]; ++k) {
-				int chunk_nr = indices_row[k] / 32;
-				int chunk_pos = indices_row[k] % 32;
-				X[chunk_nr] |= (1U << chunk_pos);
-
-				chunk_nr = (indices_row[k] + number_of_features) / 32;
-				chunk_pos = (indices_row[k] + number_of_features) % 32;
-				X[chunk_nr] &= ~(1U << chunk_pos);
-			}
+			row = generate_random(number_of_rows);
+			store_to_X(row,indptr_row,indices_row,number_of_features,X);
 		}
 		return;
 	}
@@ -86,32 +78,15 @@ void tmu_produce_autoencoder_example(
 			// Pick example randomly among positive examples
 			int random_index = indptr_col[active_output[target]] + (rand() % (indptr_col[active_output[target]+1] - indptr_col[active_output[target]]));
 			row = indices_col[random_index];
-			
-			for (int k = indptr_row[row]; k < indptr_row[row+1]; ++k) {
-				int chunk_nr = indices_row[k] / 32;
-				int chunk_pos = indices_row[k] % 32;
-				X[chunk_nr] |= (1U << chunk_pos);
-
-				chunk_nr = (indices_row[k] + number_of_features) / 32;
-				chunk_pos = (indices_row[k] + number_of_features) % 32;
-				X[chunk_nr] &= ~(1U << chunk_pos);
-			}
+			store_to_X(row,indptr_row,indices_row,number_of_features,X);
 		}
 	} else {
 		int a = 0;
 		while (a < accumulation) {
-			row = rand() % number_of_rows;
+			row = generate_random(number_of_rows);
 
 			if (bsearch(&row, &indices_col[indptr_col[active_output[target]]], indptr_col[active_output[target]+1] - indptr_col[active_output[target]], sizeof(unsigned int), compareints) == NULL) {
-				for (int k = indptr_row[row]; k < indptr_row[row+1]; ++k) {
-					int chunk_nr = indices_row[k] / 32;
-					int chunk_pos = indices_row[k] % 32;
-					X[chunk_nr] |= (1U << chunk_pos);
-
-					chunk_nr = (indices_row[k] + number_of_features) / 32;
-					chunk_pos = (indices_row[k] + number_of_features) % 32;
-					X[chunk_nr] &= ~(1U << chunk_pos);
-				}
+				store_to_X(row,indptr_row,indices_row,number_of_features,X);
 				a++;
 			}
 		}
