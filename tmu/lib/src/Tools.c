@@ -94,17 +94,11 @@ void tmu_produce_autoencoder_example(
 }
 
 void store_to_X(int row, unsigned int *indptr_row, unsigned int *indices_row, int number_of_features, unsigned int *X){
-	// now back to csr to take all words related to this document
 	for (int k = indptr_row[row]; k < indptr_row[row+1]; ++k) {
-		// enable feature 
-		// by looping on all words in this document
-		// /32 because the data stored in bits format and each 32 bit is like a chunck
 		int chunk_nr = indices_row[k] / 32;
 		int chunk_pos = indices_row[k] % 32;
 		X[chunk_nr] |= (1U << chunk_pos);
 
-		//complement of the feature index = set to zero = disable feature
-		//number_of_features used for calculating the complement of the feature index
 		chunk_nr = (indices_row[k] + number_of_features) / 32;
 		chunk_pos = (indices_row[k] + number_of_features) % 32;
 		X[chunk_nr] &= ~(1U << chunk_pos);
@@ -112,8 +106,6 @@ void store_to_X(int row, unsigned int *indptr_row, unsigned int *indices_row, in
 }
 
 int generate_random(int rows){
-	//rand() gen 0=>65000 % by rows means the number when pass rows it will be return to zero
-	// so this function return number between (0 => rows - 1)
 	return rand() % rows;
 }
 
