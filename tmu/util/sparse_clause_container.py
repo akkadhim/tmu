@@ -1,11 +1,15 @@
-import random
+import numpy as np
 
 
 class SparseClauseContainer:
 
-    def __init__(self, random_seed=None):
+    def __init__(
+            self,
+            random_seed
+    ):
         super().__init__()
-        self._rng = random.Random(x=random_seed)
+
+        self._rng_np = np.random.RandomState(seed=random_seed)
         self._clause_type = None
         self._clause_args = None
         self._classes = []
@@ -24,10 +28,22 @@ class SparseClauseContainer:
     def __len__(self):
         return len(self._classes)
 
-    def sample(self, n=1):
-        if n == 1:
-            return self._rng.choice(self._classes)
-        return self._rng.choices(self._classes, k=n)
+    def sample(self, n=1, exclude=None):
+        if exclude is None:
+            exclude = set()
+        else:
+            exclude = set(exclude)
+
+        results = []
+        for _ in range(n):
+            while True:
+                idx = self._rng_np.randint(0, self.n_classes)
+                sampled_class = self._classes[idx]
+                if sampled_class not in exclude:
+                    results.append(sampled_class)
+                    break
+
+        return results[0] if n == 1 else results
 
     def __iter__(self):
         return self._d.__iter__()

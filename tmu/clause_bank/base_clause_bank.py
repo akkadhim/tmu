@@ -12,7 +12,8 @@ class BaseClauseBank(CFFISerializable):
 
     def __init__(
             self,
-            X,
+            seed: int,
+            X_shape: tuple,
             s: float,
             boost_true_positive_feedback: bool,
             reuse_random_feedback: bool,
@@ -26,7 +27,8 @@ class BaseClauseBank(CFFISerializable):
         assert isinstance(number_of_clauses, int)
         assert isinstance(patch_dim, tuple) or patch_dim is None
 
-        self.X = X
+        self.rng = np.random.RandomState(seed)
+        self.seed = seed
         self.number_of_clauses = int(number_of_clauses)
 
         self.patch_dim = patch_dim
@@ -35,15 +37,14 @@ class BaseClauseBank(CFFISerializable):
         self.reuse_random_feedback = int(reuse_random_feedback)
         self.type_ia_ii_feedback_ratio = type_ia_ii_feedback_ratio
 
-
-        if len(X.shape) == 2:
-            self.dim = (X.shape[1], 1, 1)
-        elif len(X.shape) == 3:
-            self.dim = (X.shape[1], X.shape[2], 1)
-        elif len(X.shape) == 4:
-            self.dim = (X.shape[1], X.shape[2], X.shape[3])
+        if len(X_shape) == 2:
+            self.dim = (X_shape[1], 1, 1)
+        elif len(X_shape) == 3:
+            self.dim = (X_shape[1], X_shape[2], 1)
+        elif len(X_shape) == 4:
+            self.dim = (X_shape[1], X_shape[2], X_shape[3])
         else:
-            raise RuntimeError(f"Invalid shape on X. Found shape: {X.shape}")
+            raise RuntimeError(f"Invalid shape on X. Found shape: {X_shape}")
 
         if self.patch_dim is None:
             self.patch_dim = (self.dim[0] * self.dim[1] * self.dim[2], 1)
