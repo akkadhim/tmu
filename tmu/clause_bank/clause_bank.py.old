@@ -1,5 +1,4 @@
 # Copyright (c) 2023 Ole-Christoffer Granmo
-
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
@@ -57,16 +56,38 @@ class ClauseBank(BaseClauseBank):
         self.batch_size = batch_size
         self.incremental = incremental
 
-
         self.clause_output = np.empty(self.number_of_clauses, dtype=np.uint32, order="c")
         self.clause_output_batch = np.empty(self.number_of_clauses * batch_size, dtype=np.uint32, order="c")
         self.clause_and_target = np.zeros(self.number_of_clauses * self.number_of_ta_chunks, dtype=np.uint32, order="c")
-        self.clause_output_patchwise = np.empty(self.number_of_clauses * self.number_of_patches, dtype=np.uint32,
-                                                order="c")
+        self.clause_output_patchwise = np.empty(self.number_of_clauses * self.number_of_patches, dtype=np.uint32, order="c")
         self.feedback_to_ta = np.empty(self.number_of_ta_chunks, dtype=np.uint32, order="c")
         self.output_one_patches = np.empty(self.number_of_patches, dtype=np.uint32, order="c")
         self.literal_clause_count = np.empty(self.number_of_literals, dtype=np.uint32, order="c")
+
+
         self.type_ia_feedback_counter = np.zeros(self.number_of_clauses, dtype=np.uint32, order="c")
+
+        # Incremental Clause Evaluation
+        self.literal_clause_map = np.empty(
+            (int(self.number_of_literals * self.number_of_clauses)),
+            dtype=np.uint32,
+            order="c"
+        )
+        self.literal_clause_map_pos = np.empty(
+            (int(self.number_of_literals)),
+            dtype=np.uint32,
+            order="c"
+        )
+        self.false_literals_per_clause = np.empty(
+            int(self.number_of_clauses * self.number_of_patches),
+            dtype=np.uint32,
+            order="c"
+        )
+        self.previous_xi = np.empty(
+            int(self.number_of_ta_chunks) * int(self.number_of_patches),
+            dtype=np.uint32,
+            order="c"
+        )
 
         self.initialize_clauses()
 
@@ -85,15 +106,19 @@ class ClauseBank(BaseClauseBank):
 
         # Clause Initialization
         self.ptr_ta_state = ffi.cast("unsigned int *", self.clause_bank.ctypes.data)
-        self.ptr_ta_state_int = ffi.cast("unsigned int *", self.clause_bank_ind.ctypes.data)
+        self.ptr_ta_state_ind = ffi.cast("unsigned int *", self.clause_bank_ind.ctypes.data)
+
 
         # Action Initialization
         self.ptr_actions = ffi.cast("unsigned int *", self.actions.ctypes.data)
 
+        # Incremental Clause Evaluation Initialization
+        self.lcm_p = ffi.cast("unsigned int *", self.literal_clause_map.ctypes.data)
+        self.lcmp_p = ffi.cast("unsigned int *", self.literal_clause_map_pos.ctypes.data)
+        self.flpc_p = ffi.cast("unsigned int *", self.false_literals_per_clause.ctypes.data)
+        self.previous_xi_p = ffi.cast("unsigned int *", self.previous_xi.ctypes.data)
+
     def initialize_clauses(self):
-        # here the clause bank initilized in 3d and then to one direction array
-        # this is the same ta_state
-        # the initial value is all 1s except the last bits = 0s
         self.clause_bank = np.empty(
             shape=(self.number_of_clauses, self.number_of_ta_chunks, self.number_of_state_bits_ta),
             dtype=np.uint32,
@@ -110,8 +135,11 @@ class ClauseBank(BaseClauseBank):
         self.clause_bank_ind = np.empty(
             (self.number_of_clauses, self.number_of_ta_chunks, self.number_of_state_bits_ind), dtype=np.uint32)
         self.clause_bank_ind[:, :, :] = np.uint32(~0)
+
         self.clause_bank_ind = np.ascontiguousarray(self.clause_bank_ind.reshape(
             (self.number_of_clauses * self.number_of_ta_chunks * self.number_of_state_bits_ind)))
+
+
 
         self.incremental_clause_evaluation_initialized = False
 
@@ -133,33 +161,6 @@ class ClauseBank(BaseClauseBank):
         xi_p = ffi.cast("unsigned int *", encoded_X[e, :].ctypes.data)
 
         if not self.incremental_clause_evaluation_initialized:
-            self.literal_clause_map = np.empty(
-                (int(self.number_of_literals * self.number_of_clauses)),
-                dtype=np.uint32,
-                order="c"
-            )
-            self.lcm_p = ffi.cast("unsigned int *", self.literal_clause_map.ctypes.data)
-
-            self.literal_clause_map_pos = np.empty(
-                (int(self.number_of_literals)),
-                dtype=np.uint32,
-                order="c"
-            )
-            self.lcmp_p = ffi.cast("unsigned int *", self.literal_clause_map_pos.ctypes.data)
-
-            self.false_literals_per_clause = np.empty(
-                int(self.number_of_clauses * self.number_of_patches),
-                dtype=np.uint32,
-                order="c"
-            )
-            self.flpc_p = ffi.cast("unsigned int *", self.false_literals_per_clause.ctypes.data)
-
-            self.previous_xi = np.empty(
-                int(self.number_of_ta_chunks) * int(self.number_of_patches),
-                dtype=np.uint32,
-                order="c"
-            )
-            self.previous_xi_p = ffi.cast("unsigned int *", self.previous_xi.ctypes.data)
 
             lib.cb_initialize_incremental_clause_calculation(
                 self.ptr_ta_state,
@@ -191,10 +192,6 @@ class ClauseBank(BaseClauseBank):
         return self.clause_output_batch.reshape((self.batch_size, self.number_of_clauses))[e % self.batch_size, :]
 
     def calculate_clause_outputs_update(self, literal_active, encoded_X, e):
-        # Xi input
-        # la literal active
-        # ptr_ta_state clause bank pointer
-        # return co_p clause ouput pointer
         xi_p = ffi.cast("unsigned int *", encoded_X[e, :].ctypes.data)
         la_p = ffi.cast("unsigned int *", literal_active.ctypes.data)
 
@@ -284,6 +281,7 @@ class ClauseBank(BaseClauseBank):
 
         self.incremental_clause_evaluation_initialized = False
 
+
     def type_iii_feedback(
             self,
             update_p,
@@ -299,7 +297,7 @@ class ClauseBank(BaseClauseBank):
 
         lib.cb_type_iii_feedback(
             self.ptr_ta_state,
-            self.ptr_ta_state_int,
+            self.ptr_ta_state_ind,
             self.ptr_clause_and_target,
             self.ptr_output_one_patches,
             self.number_of_clauses,
@@ -342,6 +340,31 @@ class ClauseBank(BaseClauseBank):
         )
         return self.actions
 
+    def get_literals(self, independent=False):
+
+        result = np.zeros((self.number_of_clauses, self.number_of_literals), dtype=np.uint32, order="c")
+        result_p = ffi.cast("unsigned int *", result.ctypes.data)
+        lib.cb_get_literals(
+            self.ptr_ta_state_ind if independent else self.ptr_ta_state,
+            self.number_of_clauses,
+            self.number_of_literals,
+            self.number_of_state_bits_ta,
+            result_p
+        )
+        return result
+
+    def calculate_independent_literal_clause_frequency(self, clause_active):
+        ca_p = ffi.cast("unsigned int *", clause_active.ctypes.data)
+        lib.cb_calculate_literal_frequency(
+            self.ptr_ta_state_ind,
+            self.number_of_clauses,
+            self.number_of_literals,
+            self.number_of_state_bits_ta,
+            ca_p,
+            self.ptr_literal_clause_count
+        )
+        return self.literal_clause_count
+
     def number_of_include_actions(
             self,
             clause
@@ -373,12 +396,8 @@ class ClauseBank(BaseClauseBank):
             X_csc,
             active_output
     ):
-        # to guarantee that the array's data is in a contiguous form or when you need to interface with other libraries (c file) that expect contiguous data 
-        # each chunk is 32 bit 
-        # number_of_ta_chunks = int((self.number_of_literals - 1) / 32 + 1)
-        # number_of_literals = self.number_of_features * 2
         X = np.ascontiguousarray(np.empty(int(self.number_of_ta_chunks), dtype=np.uint32))
-        return X_csr, X_csc, active_output, X 
+        return X_csr, X_csc, active_output, X
 
     def produce_autoencoder_example(
             self,
@@ -388,8 +407,7 @@ class ClauseBank(BaseClauseBank):
             accumulation
     ):
         (X_csr, X_csc, active_output, X) = encoded_X
-        
-        # according to output_balancing it is either 50% true and 50% false or unbalanced array of ones to compare with each rand()
+
         target_value = np.random.random() <= target_true_p
 
         lib.tmu_produce_autoencoder_example(ffi.cast("unsigned int *", active_output.ctypes.data), active_output.shape[0],
@@ -404,4 +422,4 @@ class ClauseBank(BaseClauseBank):
                                              int(target_value),
                                              int(accumulation))
 
-        return  X.reshape((1, -1)), target_value
+        return X.reshape((1, -1)), target_value
