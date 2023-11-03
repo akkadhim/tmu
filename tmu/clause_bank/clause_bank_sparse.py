@@ -32,6 +32,7 @@ LOGGER = logging.getLogger(__name__)
 class ClauseBankSparse(BaseClauseBank):
     def __init__(
             self,
+            seed: int,
             number_of_states,
             d: float,
             batching=True,
@@ -44,7 +45,7 @@ class ClauseBankSparse(BaseClauseBank):
             literal_insertion_state=-1,
             **kwargs
     ):
-        super().__init__(**kwargs)
+        super().__init__(seed=seed, **kwargs)
         self.number_of_states = int(number_of_states)
         self.batching = batching
         self.incremental = incremental
@@ -58,13 +59,6 @@ class ClauseBankSparse(BaseClauseBank):
         self.d = d
 
         LOGGER.warning("reuse_random_feedback is not implemented yet")
-
-        if len(self.X.shape) == 2:
-            self.dim = (self.X.shape[1], 1, 1)
-        elif len(self.X.shape) == 3:
-            self.dim = (self.X.shape[1], self.X.shape[2], 1)
-        elif len(self.X.shape) == 4:
-            self.dim = (self.X.shape[1], self.X.shape[2], self.X.shape[3])
 
         if self.patch_dim is None:
             self.patch_dim = (self.dim[0] * self.dim[1] * self.dim[2], 1)
@@ -128,7 +122,7 @@ class ClauseBankSparse(BaseClauseBank):
 
         for j in range(self.number_of_clauses):
             literal_indexes = np.arange(self.number_of_literals, dtype=np.uint16)
-            np.random.shuffle(literal_indexes)
+            self.rng.shuffle(literal_indexes)
             self.clause_bank_excluded[j, :, 0] = literal_indexes  # Initialize clause literals randomly
             self.clause_bank_excluded[j, :,
             1] = self.number_of_states // 2 - 1  # Initialize excluded literals in least forgotten state

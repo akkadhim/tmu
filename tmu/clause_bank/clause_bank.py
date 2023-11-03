@@ -41,6 +41,7 @@ class ClauseBank(BaseClauseBank):
 
     def __init__(
             self,
+            seed: int,
             d: float,
             number_of_state_bits_ind: int,
             number_of_state_bits_ta: int,
@@ -48,7 +49,7 @@ class ClauseBank(BaseClauseBank):
             incremental: bool,
             **kwargs
     ):
-        super().__init__(**kwargs)
+        super().__init__(seed=seed, **kwargs)
 
         self.d = d
         assert isinstance(number_of_state_bits_ta, int)
@@ -72,6 +73,13 @@ class ClauseBank(BaseClauseBank):
 
         # Finally, map numpy arrays to CFFI compatible pointers.
         self._cffi_init()
+
+        # Set pcg32 seed
+        if self.seed is not None:
+            assert isinstance(self.seed, int), "Seed must be a integer"
+
+            lib.pcg32_seed(self.seed)
+            lib.xorshift128p_seed(self.seed)
 
     def _cffi_init(self):
         self.co_p = ffi.cast("unsigned int *", self.clause_output.ctypes.data)  # clause_output
@@ -388,9 +396,8 @@ class ClauseBank(BaseClauseBank):
             accumulation
     ):
         (X_csr, X_csc, active_output, X) = encoded_X
-        
-        # according to output_balancing it is either 50% true and 50% false or unbalanced array of ones to compare with each rand()
-        target_value = np.random.random() <= target_true_p
+
+        target_value = self.rng.random() <= target_true_p
 
         lib.tmu_produce_autoencoder_example(ffi.cast("unsigned int *", active_output.ctypes.data), active_output.shape[0],
                                              ffi.cast("unsigned int *", np.ascontiguousarray(X_csr.indptr).ctypes.data),
