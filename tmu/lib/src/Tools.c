@@ -49,6 +49,8 @@ void tmu_produce_autoencoder_example(
         int accumulation
 )
 {
+	void store_to_X(int row, unsigned int *indptr_row, unsigned int *indices_row, int number_of_features, unsigned int *X);
+
 	int row;
 
 	int number_of_features = number_of_cols;
