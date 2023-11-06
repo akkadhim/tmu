@@ -108,13 +108,30 @@ static inline void cb_calculate_clause_output_feedback(unsigned int *ta_state, u
 {
 	int output_one_patches_count = 0;
 	for (int patch = 0; patch < number_of_patches; ++patch) {
-		if (cb_calculate_per_patch_clause_output(patch, ta_state, number_of_ta_chunks, number_of_state_bits, filter, literal_active, Xi) == 1){
+		unsigned int output = 1;
+		for (int k = 0; k < number_of_ta_chunks-1; k++) {
+			unsigned int pos = k*number_of_state_bits + number_of_state_bits-1;
+			output = output && (ta_state[pos] & (Xi[patch*number_of_ta_chunks + k] | (~literal_active[k]))) == ta_state[pos];
+
+			if (!output) {
+				break;
+			}
+		}
+
+		unsigned int pos = (number_of_ta_chunks-1)*number_of_state_bits + number_of_state_bits-1;
+		output = output &&
+			(ta_state[pos] & (Xi[patch*number_of_ta_chunks + number_of_ta_chunks - 1] | (~literal_active[number_of_ta_chunks - 1])) & filter) ==
+			(ta_state[pos] & filter);
+
+		if (output) {
 			output_one_patches[output_one_patches_count] = patch;
 			output_one_patches_count++;
 		}
 	}
+
 	if (output_one_patches_count > 0) {
 		*clause_output = 1;
+
 		int patch_id = fast_rand() % output_one_patches_count;
  		*clause_patch = output_one_patches[patch_id];
 	} else {
@@ -180,30 +197,27 @@ static inline int cb_calculate_clause_output_single_false_literal(unsigned int *
 static inline unsigned int cb_calculate_clause_output_update(unsigned int *ta_state, int number_of_ta_chunks, int number_of_state_bits, unsigned int filter, int number_of_patches, unsigned int *literal_active, unsigned int *Xi)
 {
 	for (int patch = 0; patch < number_of_patches; ++patch) {
-		if (cb_calculate_per_patch_clause_output(patch, ta_state, number_of_ta_chunks, number_of_state_bits, filter, literal_active, Xi) == 1)
-			return (1);
-	}
-	return (0);
-}
+		unsigned int output = 1;
+		for (int k = 0; k < number_of_ta_chunks-1; k++) {
+			unsigned int pos = k*number_of_state_bits + number_of_state_bits-1;
+			output = output && (ta_state[pos] & (Xi[patch*number_of_ta_chunks + k] | (~literal_active[k]))) == ta_state[pos];
 
-static inline unsigned int cb_calculate_per_patch_clause_output(int patch, unsigned int *ta_state, int number_of_ta_chunks, int number_of_state_bits, unsigned int filter, unsigned int *literal_active, unsigned int *Xi){
-	unsigned int output = 1;
-	for (int k = 0; k < number_of_ta_chunks-1; k++) {
-		unsigned int pos = k*number_of_state_bits + number_of_state_bits-1;
+			if (!output) {
+				break;
+			}
+		}
 
-		output = output && (ta_state[pos] & (Xi[k] | (~literal_active[k]))) == ta_state[pos];
+		unsigned int pos = (number_of_ta_chunks-1)*number_of_state_bits + number_of_state_bits-1;
+		output = output &&
+			(ta_state[pos] & (Xi[patch*number_of_ta_chunks + number_of_ta_chunks - 1] | (~literal_active[number_of_ta_chunks - 1])) & filter) ==
+			(ta_state[pos] & filter);
 
-		if (!output) {
-			break;
+		if (output) {
+			return(1);
 		}
 	}
 
-	unsigned int pos = (number_of_ta_chunks-1)*number_of_state_bits + number_of_state_bits-1;
-	output = output &&
-		(ta_state[pos] & (Xi[patch*number_of_ta_chunks + number_of_ta_chunks - 1] | (~literal_active[number_of_ta_chunks - 1])) & filter) ==
-		(ta_state[pos] & filter);
-
-	return output;
+	return(0);
 }
 
 static inline void cb_calculate_clause_output_patchwise(unsigned int *ta_state, int number_of_ta_chunks, int number_of_state_bits, unsigned int filter, int number_of_patches, unsigned int *output, unsigned int *Xi)
