@@ -19,7 +19,9 @@ from tmu.weight_bank import WeightBank
 from tmu.models.base import MultiWeightBankMixin, SingleClauseBankMixin, TMBaseModel
 import numpy as np
 from scipy.sparse import csr_matrix, csc_matrix
-
+import multiprocessing
+from numba import jit
+from typing import List
 
 class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
     def __init__(
@@ -51,10 +53,12 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             feedback_rate_excluded_literals=1,
             literal_insertion_state=-1,
             squared_weight_update_p=False,
-            seed=None
+            seed=None,
+            experts = 0
     ):
         self.output_active = output_active
         self.accumulation = accumulation
+        self.experts = experts
         super().__init__(
             number_of_clauses=number_of_clauses,
             T=T,
@@ -244,13 +248,31 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
 
         return literal_active
 
+    def categorize_data(self, data: List[int], experts: int, min_data: int, max_data: int):
+        # Calculate the range size based on the number of categories
+        range_size = (max_data - min_data) / experts
+
+        # Initialize an array to store the category indices
+        category_indices = [[] for _ in range(experts)]
+
+        # Iterate through the data and assign each value to a category
+        for i, value in enumerate(data):
+            category = min(int((value - min_data) / range_size), experts - 1)
+            category_indices[category].append(i)
+
+        return category_indices
+
     def fit(self, X, number_of_examples=2000, shuffle=True, *kwargs):
         X_csr = csr_matrix(X.reshape(X.shape[0], -1))
         X_csc = csc_matrix(X.reshape(X.shape[0], -1)).sorted_indices()
 
-        print("modified lib")
+        print("Fit with categories")
 
         self.init(X_csr, Y=None)
+
+        min_in_data = np.min(X_csc.data)
+        max_in_data = np.max(X_csc.data)
+        categories_indices = self.categorize_data(X_csc.data, self.experts, min_data= min_in_data, max_data= max_in_data)
 
         if not np.array_equal(self.X_train, np.concatenate((X_csr.indptr, X_csr.indices))):
             self.encoded_X_train = self.clause_bank.prepare_X_autoencoder(X_csr, X_csc, self.output_active)
@@ -271,31 +293,43 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                     self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
 
             for i in class_index:
-                Xu, Yu = self.clause_bank.produce_autoencoder_example(
-                    encoded_X=self.encoded_X_train,
-                    target=i,
-                    target_true_p=self.feature_true_probability[self.output_active[i]],
-                    accumulation=self.accumulation
-                )
+                processes = []
+                for expert in range(self.experts):
+                    p = multiprocessing.Process(target=self.fit_per_expert(categories_indices[expert], clause_active, literal_active, i, update_clause), args=(expert,))
+                    p.start()
+                    processes.append(p)
+                
+                for p in processes:
+                    p.join()
 
-                ta_chunk = self.output_active[i] // 32
-                chunk_pos = self.output_active[i] % 32
-                copy_literal_active_ta_chunk = literal_active[ta_chunk]
-
-                if self.feature_negation:
-                    ta_chunk_negated = (self.output_active[i] + self.clause_bank.number_of_features) // 32
-                    chunk_pos_negated = (self.output_active[i] + self.clause_bank.number_of_features) % 32
-                    copy_literal_active_ta_chunk_negated = literal_active[ta_chunk_negated]
-                    literal_active[ta_chunk_negated] &= ~(1 << chunk_pos_negated)
-
-                literal_active[ta_chunk] &= ~(1 << chunk_pos)
-
-                self.update(i, Yu, Xu, update_clause * clause_active, literal_active)
-
-                if self.feature_negation:
-                    literal_active[ta_chunk_negated] = copy_literal_active_ta_chunk_negated
-                literal_active[ta_chunk] = copy_literal_active_ta_chunk
         return
+
+    def fit_per_expert(self, indices, clause_active, literal_active, i, update_clause):
+        Xu, Yu = self.clause_bank.produce_autoencoder_example(
+                        encoded_X=self.encoded_X_train,
+                        target=i,
+                        target_true_p=self.feature_true_probability[self.output_active[i]],
+                        accumulation=self.accumulation / self.experts,
+                        category_indices = indices
+                    )
+
+        ta_chunk = self.output_active[i] // 32
+        chunk_pos = self.output_active[i] % 32
+        copy_literal_active_ta_chunk = literal_active[ta_chunk]
+
+        if self.feature_negation:
+            ta_chunk_negated = (self.output_active[i] + self.clause_bank.number_of_features) // 32
+            chunk_pos_negated = (self.output_active[i] + self.clause_bank.number_of_features) % 32
+            copy_literal_active_ta_chunk_negated = literal_active[ta_chunk_negated]
+            literal_active[ta_chunk_negated] &= ~(1 << chunk_pos_negated)
+
+        literal_active[ta_chunk] &= ~(1 << chunk_pos)
+
+        self.update(i, Yu, Xu, update_clause * clause_active, literal_active)
+
+        if self.feature_negation:
+            literal_active[ta_chunk_negated] = copy_literal_active_ta_chunk_negated
+        literal_active[ta_chunk] = copy_literal_active_ta_chunk
 
     def predict(self, X, **kwargs):
         X_csr = csr_matrix(X.reshape(X.shape[0], -1))

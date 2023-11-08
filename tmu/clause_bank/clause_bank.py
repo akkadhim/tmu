@@ -393,7 +393,8 @@ class ClauseBank(BaseClauseBank):
             encoded_X,
             target,
             target_true_p,
-            accumulation
+            accumulation,
+            category_indices
     ):
         (X_csr, X_csc, active_output, X) = encoded_X
 
@@ -409,6 +410,8 @@ class ClauseBank(BaseClauseBank):
                                              ffi.cast("unsigned int *", X.ctypes.data),
                                              int(target),
                                              int(target_value),
-                                             int(accumulation))
+                                             int(accumulation),
+                                             ffi.cast("unsigned int *", np.ascontiguousarray(category_indices).ctypes.data),
+                                             )
 
         return  X.reshape((1, -1)), target_value

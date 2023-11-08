@@ -1,5 +1,6 @@
 import numpy as np
 from time import time
+import keras
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from tmu.models.autoencoder.autoencoder import TMAutoEncoder
@@ -47,7 +48,8 @@ def main():
 	parser = argparse.ArgumentParser(description='Process some integers.')
 	parser.add_argument('--clause_weight_threshold', type=int, default=0, help='Clause weight threshold')
 	parser.add_argument('--number_of_examples', type=int, default=2000, help='Number of examples')
-	parser.add_argument('--accumulation', type=int, default=25, help='Accumulation')
+	parser.add_argument('--accumulation', type=int, default=26, help='Accumulation') #experts*6
+	parser.add_argument('--experts', type=int, default=4, help='Experts')
 	parser.add_argument('--factor', type=int, default=4, help='Factor')
 	parser.add_argument('--clauses', type=int, default=80, help='Clauses')  # factor*20
 	parser.add_argument('--T', type=int, default=160, help='T') # factor*40
@@ -61,15 +63,19 @@ def main():
 	args = parser.parse_args()
 
 	# load IMDB dataset
-	dataloader = IMDB(num_words=args.NUM_WORDS, index_from=args.INDEX_FROM)
-	dataset = dataloader.get()
-	train_x = dataset["x_train"]
-	train_y = dataset["y_train"]
-	test_x = dataset["x_test"]
-	test_y = dataset["y_test"]
+	# dataset = keras.datasets.imdb.load_data(num_words=args.NUM_WORDS, index_from=args.INDEX_FROM)
+	# #dataloader = IMDB(num_words=args.NUM_WORDS, index_from=args.INDEX_FROM)
+	# #dataset = dataloader.get()
+	# train_x = dataset["x_train"]
+	# train_y = dataset["y_train"]
+	# test_x = dataset["x_test"]
+	# test_y = dataset["y_test"]
+	train,test = keras.datasets.imdb.load_data(num_words=args.NUM_WORDS, index_from=args.INDEX_FROM)
+	train_x,train_y = train
+	test_x,test_y = test
 
 	# get word to indice and id_to_word mappings
-	word_to_id = dataloader.get_word_index()
+	word_to_id = keras.datasets.imdb.get_word_index()
 	word_to_id = {k:(v+args.INDEX_FROM) for k,v in word_to_id.items()}
 	word_to_id["<PAD>"] = 0
 	word_to_id["<START>"] = 1
@@ -95,7 +101,7 @@ def main():
     	tokenizer=tokenizer, 
 		token_pattern=None,
      	lowercase=False, 
-      	binary=True
+      	binary=not(args.experts > 0)
     )
 
 	X_train = vectorizer_X.fit_transform(training_documents)
@@ -126,7 +132,8 @@ def main():
 		accumulation=args.accumulation, 
 		feature_negation=False, 
 		platform=args.device, 
-		output_balancing=True
+		output_balancing=True,
+		experts=args.experts
      )
 
 
