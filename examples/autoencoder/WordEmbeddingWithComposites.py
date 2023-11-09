@@ -47,7 +47,7 @@ import argparse
 def main():
 	parser = argparse.ArgumentParser(description='Process some integers.')
 	parser.add_argument('--clause_weight_threshold', type=int, default=0, help='Clause weight threshold')
-	parser.add_argument('--number_of_examples', type=int, default=5, help='Number of examples')
+	parser.add_argument('--number_of_examples', type=int, default=1, help='Number of examples')
 	parser.add_argument('--accumulation', type=int, default=26, help='Accumulation') #experts*6
 	parser.add_argument('--experts', type=int, default=4, help='Experts')
 	parser.add_argument('--factor', type=int, default=4, help='Factor')

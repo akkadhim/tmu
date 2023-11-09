@@ -38,7 +38,8 @@ void tmu_produce_autoencoder_example(
     int target,
     int target_value,
     int accumulation,
-    unsigned int *category_indices
+    unsigned int *category_indices,
+    int categories_indecies_size
 );
 
 void tmu_encode(
