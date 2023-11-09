@@ -47,7 +47,7 @@ import argparse
 def main():
 	parser = argparse.ArgumentParser(description='Process some integers.')
 	parser.add_argument('--clause_weight_threshold', type=int, default=0, help='Clause weight threshold')
-	parser.add_argument('--number_of_examples', type=int, default=2000, help='Number of examples')
+	parser.add_argument('--number_of_examples', type=int, default=5, help='Number of examples')
 	parser.add_argument('--accumulation', type=int, default=26, help='Accumulation') #experts*6
 	parser.add_argument('--experts', type=int, default=4, help='Experts')
 	parser.add_argument('--factor', type=int, default=4, help='Factor')
@@ -56,7 +56,7 @@ def main():
 	parser.add_argument('--s', type=float, default=5.0, help='S')
 	parser.add_argument('--NUM_WORDS', type=int, default=10000, help='Number of words')
 	parser.add_argument('--INDEX_FROM', type=int, default=2, help='Index from')
-	parser.add_argument('--epochs', type=int, default=250, help='Number of epochs')
+	parser.add_argument('--epochs', type=int, default=2, help='Number of epochs')
 	parser.add_argument('--device', type=str, default="CUDA", help='which device to use')
 	parser.add_argument("--number_of_output_words", type=int, default=20, help="how many words")
  
@@ -146,18 +146,15 @@ def main():
 			with benchmark_train:
 				tm.fit(X_train, number_of_examples=args.number_of_examples)
 
-
 			_LOGGER.info("\nEpoch #%d\n" % (e+1))
 
-			_LOGGER.info("Calculating precision\n")
+			print("Calculating precision and recall\n")
 			precision = []
-			for i in range(len(target_words)):
-				precision.append(tm.clause_precision(i, True, X_train, number_of_examples=500))
-
-			_LOGGER.info("Calculating recall\n")
 			recall = []
 			for i in range(len(target_words)):
-				recall.append(tm.clause_recall(i, True, X_train, number_of_examples=500))
+				pres, rec = tm.clause_precision_recall(i, True, X_train, number_of_examples=1)
+				precision.append(pres)
+				recall.append(rec)
 
 			_LOGGER.info("Clauses\n")
 
