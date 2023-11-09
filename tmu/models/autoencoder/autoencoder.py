@@ -248,17 +248,13 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
 
         return literal_active
 
-    def categorize_data(self, data: List[int], experts: int, min_data: int, max_data: int):
-        # Calculate the range size based on the number of categories
-        range_size = (max_data - min_data) / experts
-
-        # Initialize an array to store the category indices
+    def categorize_data(self, data, experts):
+        points_per_category = len(data) // experts
+        sorted_indices = np.argsort(data)
         category_indices = [[] for _ in range(experts)]
-
-        # Iterate through the data and assign each value to a category
-        for i, value in enumerate(data):
-            category = min(int((value - min_data) / range_size), experts - 1)
-            category_indices[category].append(i)
+        for i, index in enumerate(sorted_indices):
+            category = min(i // points_per_category, experts - 1)
+            category_indices[category].append(index)
 
         return category_indices
 
@@ -269,10 +265,8 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
         print("Fit with categories")
 
         self.init(X_csr, Y=None)
-
-        min_in_data = np.min(X_csc.data)
-        max_in_data = np.max(X_csc.data)
-        categories_indices = self.categorize_data(X_csc.data, self.experts, min_data= min_in_data, max_data= max_in_data)
+        
+        categories_indices = self.categorize_data(X_csc.data, self.experts)
 
         if not np.array_equal(self.X_train, np.concatenate((X_csr.indptr, X_csr.indices))):
             self.encoded_X_train = self.clause_bank.prepare_X_autoencoder(X_csr, X_csc, self.output_active)
