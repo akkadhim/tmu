@@ -394,7 +394,7 @@ class ClauseBank(BaseClauseBank):
             target,
             target_true_p,
             accumulation,
-            category_indices = None
+            category_indices
     ):
         (X_csr, X_csc, active_output, X) = encoded_X
 

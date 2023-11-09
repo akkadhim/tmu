@@ -361,60 +361,6 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
 
         return literal_frequency
 
-    # def clause_precision(self, the_class, positive_polarity, X, number_of_examples=2000):
-    #     return self.clause_statistical_clc(the_class, positive_polarity, X, number_of_examples, False)
-
-    # def clause_recall(self, the_class, positive_polarity, X, number_of_examples=2000):
-    #     return self.clause_statistical_clc(the_class, positive_polarity, X, number_of_examples, True)
-
-    # def clause_statistical_clc(self, the_class, positive_polarity, X, number_of_examples, is_recall):
-    #     X_csr = csr_matrix(X.reshape(X.shape[0], -1))
-    #     X_csc = csc_matrix(X.reshape(X.shape[0], -1)).sorted_indices()
-
-    #     if not np.array_equal(self.X_test, np.concatenate((X_csr.indptr, X_csr.indices))):
-    #         self.encoded_X_test = self.clause_bank.prepare_X_autoencoder(X_csr, X_csc, self.output_active)
-    #         self.X_test = np.concatenate((X_csr.indptr, X_csr.indices))
-
-    #     true_positive = np.zeros(self.number_of_clauses, dtype=np.uint32)
-    #     if is_recall:
-    #         false_negative = np.zeros(self.number_of_clauses, dtype=np.uint32)
-    #     else:
-    #         false_positive = np.zeros(self.number_of_clauses, dtype=np.uint32)  
-    #         clause_active = self.activate_clauses()
-    #         literal_active = self.activate_literals()
-
-    #     weights = self.weight_banks[the_class].get_weights()
-
-    #     for e in range(number_of_examples):
-    #         Xu, Yu = self.clause_bank.produce_autoencoder_example(self.encoded_X_test, the_class, self.feature_true_probability[self.output_active[the_class]], self.accumulation)
-    #         clause_outputs = self.clause_bank.calculate_clause_outputs_predict(Xu, 0)
-
-    #         if (positive_polarity and is_recall):
-    #             if positive_polarity:
-    #                 if Yu == 1:
-    #                     true_positive += (weights >= 0) * clause_outputs
-    #                     false_negative += (weights >= 0) * (1 - clause_outputs)
-    #             else:
-    #                 if Yu == 0:
-    #                     true_positive += (weights < 0) * clause_outputs
-    #                     false_negative += (weights < 0) * (1 - clause_outputs)
-
-    #         elif positive_polarity:
-    #             if Yu == 1:
-    #                 true_positive += (weights >= 0) * clause_outputs
-    #             else:
-    #                 false_positive += (weights >= 0) * clause_outputs
-    #         else:
-    #             if Yu == 0:
-    #                 true_positive += (weights < 0) * clause_outputs
-    #             else:
-    #                 false_positive += (weights < 0) * clause_outputs
-
-    #     if is_recall:
-    #         return true_positive / (true_positive + false_negative)
-    #     else:
-    #         return 1.0 * true_positive / (true_positive + false_positive)
-
     def clause_precision_recall(self, the_class, positive_polarity, X, number_of_examples = 2000):
         X_csr = csr_matrix(X.reshape(X.shape[0], -1))
         X_csc = csc_matrix(X.reshape(X.shape[0], -1)).sorted_indices()
@@ -431,7 +377,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
         weights = self.weight_banks[the_class].get_weights()
 
         for e in range(number_of_examples):
-            Xu, Yu = self.clause_bank.produce_autoencoder_example(self.encoded_X_test, the_class, self.feature_true_probability[self.output_active[the_class]], self.accumulation)
+            Xu, Yu = self.clause_bank.produce_autoencoder_example(self.encoded_X_test, the_class, self.feature_true_probability[self.output_active[the_class]], self.accumulation, category_indices=None)
             clause_outputs = self.clause_bank.calculate_clause_outputs_predict(Xu, 0)
 
             if positive_polarity:

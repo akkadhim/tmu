@@ -188,8 +188,8 @@ def main():
 					_LOGGER.info("%s(%.2f) " % (target_words[sorted_index[j]], similarity[i,sorted_index[j]]))
 				_LOGGER.info("")
 
-		if args.device == "CUDA":
-			CudaProfiler().print_timings(benchmark=benchmark_total)
+		# if args.device == "CUDA":
+		# 	CudaProfiler().print_timings(benchmark=benchmark_total)
 
 
 

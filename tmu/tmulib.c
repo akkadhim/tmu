@@ -1496,7 +1496,7 @@ void tmu_produce_autoencoder_example(
 	if (target_value) {
 		for (int a = 0; a < accumulation; ++a) {
 			// Pick example randomly among positive examples
-			if (categories_indecies_size > 0)
+			if (categories_indecies_size > 0 && a < categories_indecies_size)
 			{
 				row = indices_col[category_indices[a]];
 			}
