@@ -57,7 +57,7 @@ def main():
 	parser.add_argument('--NUM_WORDS', type=int, default=10000, help='Number of words')
 	parser.add_argument('--INDEX_FROM', type=int, default=2, help='Index from')
 	parser.add_argument('--epochs', type=int, default=2, help='Number of epochs')
-	parser.add_argument('--device', type=str, default="CUDA", help='which device to use')
+	parser.add_argument('--device', type=str, default="CPU", help='which device to use')
 	parser.add_argument("--number_of_output_words", type=int, default=20, help="how many words")
  
 	args = parser.parse_args()

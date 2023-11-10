@@ -427,7 +427,7 @@ class ImplClauseBankCUDA(BaseClauseBank):
             int(target_value),
             int(accumulation),
             category_indices,
-            int(len(category_indices))),
+            int(len(category_indices)))
 
         self.cuda_ctx.synchronize()
 

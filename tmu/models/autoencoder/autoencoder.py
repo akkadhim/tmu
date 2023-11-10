@@ -19,7 +19,6 @@ from tmu.weight_bank import WeightBank
 from tmu.models.base import MultiWeightBankMixin, SingleClauseBankMixin, TMBaseModel
 import numpy as np
 from scipy.sparse import csr_matrix, csc_matrix
-import multiprocessing
 from numba import jit
 from typing import List
 
@@ -289,12 +288,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             for i in class_index:
                 processes = []
                 for expert in range(self.experts):
-                    p = multiprocessing.Process(target=self.fit_per_expert(categories_indices[expert], clause_active, literal_active, i, update_clause), args=(expert,))
-                    p.start()
-                    processes.append(p)
-                
-                for p in processes:
-                    p.join()
+                    self.fit_per_expert(categories_indices[expert], clause_active, literal_active, i, update_clause)
 
         return
 
