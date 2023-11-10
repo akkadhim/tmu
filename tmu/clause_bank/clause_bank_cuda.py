@@ -381,6 +381,7 @@ class ImplClauseBankCUDA(BaseClauseBank):
             encoded_X,
             target,
             accumulation,
+            category_indices,
             **kwargs
     ):
         # Log unknown arguments only once
@@ -405,6 +406,9 @@ class ImplClauseBankCUDA(BaseClauseBank):
         ) = encoded_X
 
         target_value = self.rng.choice(2)
+        
+        if category_indices is None:
+            category_indices = np.empty(0, dtype=np.uint32)
 
         self.produce_autoencoder_examples_gpu.prepared_call(
             self.grid,
@@ -421,7 +425,9 @@ class ImplClauseBankCUDA(BaseClauseBank):
             X_gpu,
             int(target),
             int(target_value),
-            int(accumulation))
+            int(accumulation),
+            category_indices,
+            int(len(category_indices))),
 
         self.cuda_ctx.synchronize()
 
