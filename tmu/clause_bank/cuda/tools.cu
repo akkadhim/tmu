@@ -62,7 +62,9 @@ extern "C"
 		unsigned int *X,
 		int target,
         int target_value,
-		int accumulation
+		int accumulation,
+		unsigned int *category_indices,
+		int categories_indecies_size
 	)
 	{
 		int index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -119,8 +121,14 @@ extern "C"
 		if (target_value) {
 			for (int a = 0; a < accumulation; ++a) {
 				// Pick example randomly among positive examples
-				int random_index = indptr_col[active_output[target]] + (curand(&localState) % (indptr_col[active_output[target]+1] - indptr_col[active_output[target]]));
-				row = indices_col[random_index];
+				if (categories_indecies_size > 0 && a < categories_indecies_size)
+				{
+					row = indices_col[category_indices[a]];
+				}
+				else{
+					int random_index = indptr_col[active_output[target]] + (curand(&localState) % (indptr_col[active_output[target]+1] - indptr_col[active_output[target]]));
+					row = indices_col[random_index];
+				}		
 				
 				for (int k = indptr_row[row]; k < indptr_row[row+1]; ++k) {
 					int chunk_nr = indices_row[k] / 32;
