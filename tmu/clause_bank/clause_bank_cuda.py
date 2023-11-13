@@ -411,9 +411,9 @@ class ImplClauseBankCUDA(BaseClauseBank):
             category_indices_np = np.empty(0, dtype=np.uint32)
         else:
             category_indices_np = np.array(category_indices, dtype=np.uint32)
+            category_indices_gpu = self._profiler.profile(cuda.mem_alloc, category_indices_np.nbytes)
+            self._profiler.profile(cuda.memcpy_htod, category_indices_gpu, category_indices_np)
 
-        category_indices_gpu = self._profiler.profile(cuda.mem_alloc, category_indices_np.nbytes)
-        self._profiler.profile(cuda.memcpy_htod, category_indices_gpu, category_indices_np)
 
         self.produce_autoencoder_examples_gpu.prepared_call(
             self.grid,
