@@ -127,7 +127,7 @@ class ImplClauseBankCUDA(BaseClauseBank):
 
         mod = load_cuda_kernel(parameters, "cuda/tools.cu")
         self.produce_autoencoder_examples_gpu = mod.get_function("produce_autoencoder_example")
-        self.produce_autoencoder_examples_gpu.prepare("PPiPPiPPiPiii")
+        self.produce_autoencoder_examples_gpu.prepare("PPiPPiPPiPiiiPi")
 
         # self.prepare_encode_gpu = mod.get_function("prepare_encode")
         # self.prepare_encode_gpu.prepare("PPiiiiiiii")
@@ -408,7 +408,12 @@ class ImplClauseBankCUDA(BaseClauseBank):
         target_value = self.rng.choice(2)
         
         if category_indices is None:
-            category_indices = np.empty(0, dtype=np.uint32)
+            category_indices_np = np.empty(0, dtype=np.uint32)
+        else:
+            category_indices_np = np.array(category_indices, dtype=np.uint32)
+
+        category_indices_gpu = self._profiler.profile(cuda.mem_alloc, category_indices_np.nbytes)
+        self._profiler.profile(cuda.memcpy_htod, category_indices_gpu, category_indices_np)
 
         self.produce_autoencoder_examples_gpu.prepared_call(
             self.grid,
@@ -426,7 +431,7 @@ class ImplClauseBankCUDA(BaseClauseBank):
             int(target),
             int(target_value),
             int(accumulation),
-            category_indices,
+            category_indices_gpu,
             int(len(category_indices)))
 
         self.cuda_ctx.synchronize()

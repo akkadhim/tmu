@@ -284,7 +284,6 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                     self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
 
             for i in class_index:
-                processes = []
                 for expert in range(self.experts):
                     self.fit_per_expert(categories_indices[expert], clause_active, literal_active, i, update_clause)
 
@@ -294,9 +293,9 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
         Xu, Yu = self.clause_bank.produce_autoencoder_example(
                         encoded_X=self.encoded_X_train,
                         target=i,
-                        target_true_p=self.feature_true_probability[self.output_active[i]],
                         accumulation=self.accumulation / self.experts,
-                        category_indices = indices
+                        category_indices = indices,
+                        target_true_p=self.feature_true_probability[self.output_active[i]]
                     )
 
         ta_chunk = self.output_active[i] // 32
