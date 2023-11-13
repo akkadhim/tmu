@@ -407,6 +407,7 @@ class ImplClauseBankCUDA(BaseClauseBank):
 
         target_value = self.rng.choice(2)
         
+        category_indices_gpu = None
         if category_indices is None:
             category_indices_np = np.empty(0, dtype=np.uint32)
         else:
