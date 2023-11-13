@@ -19,8 +19,6 @@ from tmu.weight_bank import WeightBank
 from tmu.models.base import MultiWeightBankMixin, SingleClauseBankMixin, TMBaseModel
 import numpy as np
 from scipy.sparse import csr_matrix, csc_matrix
-from numba import jit
-from typing import List
 
 class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
     def __init__(
