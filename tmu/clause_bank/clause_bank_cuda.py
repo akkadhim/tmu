@@ -355,6 +355,9 @@ class ImplClauseBankCUDA(BaseClauseBank):
         X_csc_indices_gpu = self._profiler.profile(cuda.mem_alloc, X_csc.indices.nbytes)
         self._profiler.profile(cuda.memcpy_htod, X_csc_indices_gpu, X_csc.indices)
 
+        X_csc_data_gpu = self._profiler.profile(cuda.mem_alloc, X_csc.data.nbytes)
+        self._profiler.profile(cuda.memcpy_htod, X_csc_data_gpu, X_csc.data)
+
         active_output_gpu = self._profiler.profile(cuda.mem_alloc, active_output.nbytes)
         self._profiler.profile(cuda.memcpy_htod, active_output_gpu, active_output)
 
@@ -370,6 +373,7 @@ class ImplClauseBankCUDA(BaseClauseBank):
             int(X_csr.shape[0]),
             X_csc_indptr_gpu,
             X_csc_indices_gpu,
+            X_csc_data_gpu,
             int(X_csc.shape[1]),
             X_gpu
         )
@@ -381,7 +385,7 @@ class ImplClauseBankCUDA(BaseClauseBank):
             encoded_X,
             target,
             accumulation,
-            category_indices,
+            experts,
             **kwargs
     ):
         # Log unknown arguments only once
@@ -401,21 +405,13 @@ class ImplClauseBankCUDA(BaseClauseBank):
             number_of_rows,
             X_csc_indptr_gpu,
             X_csc_indices_gpu,
+            X_csc_data_gpu,
             number_of_columns,
             X_gpu
         ) = encoded_X
 
         target_value = self.rng.choice(2)
         
-        category_indices_gpu = None
-        if category_indices is None:
-            category_indices_np = np.empty(0, dtype=np.uint32)
-        else:
-            category_indices_np = np.array(category_indices, dtype=np.uint32)
-            category_indices_gpu = self._profiler.profile(cuda.mem_alloc, category_indices_np.nbytes)
-            self._profiler.profile(cuda.memcpy_htod, category_indices_gpu, category_indices_np)
-
-
         self.produce_autoencoder_examples_gpu.prepared_call(
             self.grid,
             self.block,
@@ -432,8 +428,8 @@ class ImplClauseBankCUDA(BaseClauseBank):
             int(target),
             int(target_value),
             int(accumulation),
-            category_indices_gpu,
-            int(len(category_indices)))
+            X_csc_data_gpu,
+            int(experts))
 
         self.cuda_ctx.synchronize()
 

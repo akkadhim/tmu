@@ -258,12 +258,10 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
     def fit(self, X, number_of_examples=2000, shuffle=True, *kwargs):
         X_csr = csr_matrix(X.reshape(X.shape[0], -1))
         X_csc = csc_matrix(X.reshape(X.shape[0], -1)).sorted_indices()
-
-        print("Fit with categories")
-
         self.init(X_csr, Y=None)
 
         categories_indices = self.categorize_data(X_csc.data, self.experts)
+        print("Fit with categories")
 
         if not np.array_equal(self.X_train, np.concatenate((X_csr.indptr, X_csr.indices))):
             self.encoded_X_train = self.clause_bank.prepare_X_autoencoder(X_csr, X_csc, self.output_active)
@@ -284,37 +282,33 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                     self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
 
             for i in class_index:
-                for expert in range(self.experts):
-                    self.fit_per_expert(categories_indices[expert], clause_active, literal_active, i, update_clause)
+                Xu, Yu = self.clause_bank.produce_autoencoder_example(
+                    encoded_X=self.encoded_X_train,
+                    target=i,
+                    accumulation=self.accumulation,
+                    experts= self.experts,
+                    target_true_p=self.feature_true_probability[self.output_active[i]]
+                )
+
+                ta_chunk = self.output_active[i] // 32
+                chunk_pos = self.output_active[i] % 32
+                copy_literal_active_ta_chunk = literal_active[ta_chunk]
+
+                if self.feature_negation:
+                    ta_chunk_negated = (self.output_active[i] + self.clause_bank.number_of_features) // 32
+                    chunk_pos_negated = (self.output_active[i] + self.clause_bank.number_of_features) % 32
+                    copy_literal_active_ta_chunk_negated = literal_active[ta_chunk_negated]
+                    literal_active[ta_chunk_negated] &= ~(1 << chunk_pos_negated)
+
+                literal_active[ta_chunk] &= ~(1 << chunk_pos)
+
+                self.update(i, Yu, Xu, update_clause * clause_active, literal_active)
+
+                if self.feature_negation:
+                    literal_active[ta_chunk_negated] = copy_literal_active_ta_chunk_negated
+                literal_active[ta_chunk] = copy_literal_active_ta_chunk
 
         return
-
-    def fit_per_expert(self, indices, clause_active, literal_active, i, update_clause):
-        Xu, Yu = self.clause_bank.produce_autoencoder_example(
-                        encoded_X=self.encoded_X_train,
-                        target=i,
-                        accumulation=self.accumulation / self.experts,
-                        category_indices = indices,
-                        target_true_p=self.feature_true_probability[self.output_active[i]]
-                    )
-
-        ta_chunk = self.output_active[i] // 32
-        chunk_pos = self.output_active[i] % 32
-        copy_literal_active_ta_chunk = literal_active[ta_chunk]
-
-        if self.feature_negation:
-            ta_chunk_negated = (self.output_active[i] + self.clause_bank.number_of_features) // 32
-            chunk_pos_negated = (self.output_active[i] + self.clause_bank.number_of_features) % 32
-            copy_literal_active_ta_chunk_negated = literal_active[ta_chunk_negated]
-            literal_active[ta_chunk_negated] &= ~(1 << chunk_pos_negated)
-
-        literal_active[ta_chunk] &= ~(1 << chunk_pos)
-
-        self.update(i, Yu, Xu, update_clause * clause_active, literal_active)
-
-        if self.feature_negation:
-            literal_active[ta_chunk_negated] = copy_literal_active_ta_chunk_negated
-        literal_active[ta_chunk] = copy_literal_active_ta_chunk
 
     def predict(self, X, **kwargs):
         X_csr = csr_matrix(X.reshape(X.shape[0], -1))
@@ -368,7 +362,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
         weights = self.weight_banks[the_class].get_weights()
 
         for e in range(number_of_examples):
-            Xu, Yu = self.clause_bank.produce_autoencoder_example(self.encoded_X_test, the_class, self.accumulation, category_indices=None, target_true_p= self.feature_true_probability[self.output_active[the_class]])
+            Xu, Yu = self.clause_bank.produce_autoencoder_example(self.encoded_X_test, the_class, self.accumulation, experts=0, target_true_p= self.feature_true_probability[self.output_active[the_class]])
             clause_outputs = self.clause_bank.calculate_clause_outputs_predict(Xu, 0)
 
             if positive_polarity:

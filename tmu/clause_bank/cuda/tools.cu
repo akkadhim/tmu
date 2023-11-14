@@ -63,8 +63,8 @@ extern "C"
 		int target,
         int target_value,
 		int accumulation,
-		unsigned int *category_indices,
-		int categories_indecies_size
+		unsigned int *data_col,
+		int experts
 	)
 	{
 		int index = blockIdx.x * blockDim.x + threadIdx.x;

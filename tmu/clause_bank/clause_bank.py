@@ -393,15 +393,12 @@ class ClauseBank(BaseClauseBank):
             encoded_X,
             target,
             accumulation,
-            category_indices,
+            experts,
             target_true_p
     ):
         (X_csr, X_csc, active_output, X) = encoded_X
 
         target_value = self.rng.random() <= target_true_p
-
-        if category_indices is None:
-            category_indices = np.empty(0, dtype=np.uint32)
 
         lib.tmu_produce_autoencoder_example(ffi.cast("unsigned int *", active_output.ctypes.data), active_output.shape[0],
                                              ffi.cast("unsigned int *", np.ascontiguousarray(X_csr.indptr).ctypes.data),
@@ -414,8 +411,8 @@ class ClauseBank(BaseClauseBank):
                                              int(target),
                                              int(target_value),
                                              int(accumulation),
-                                             ffi.cast("unsigned int *", np.ascontiguousarray(category_indices).ctypes.data),
-                                             int(len(category_indices))
+                                             ffi.cast("unsigned int *", np.ascontiguousarray(X_csc.data).ctypes.data),
+                                             int(experts)
                                              )
 
         return  X.reshape((1, -1)), target_value

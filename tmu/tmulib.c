@@ -1445,9 +1445,19 @@ https://arxiv.org/abs/1905.09688
 #include <string.h>
 #include <stdlib.h>
 
+typedef struct {
+    unsigned int value;
+    unsigned int index;
+} IndexedValue;
+
 unsigned int compareints(const void * a, const void * b)
 {
   return(*(unsigned int*)a - *(unsigned int*)b);
+}
+
+// Comparison function for sorting IndexedValue array
+unsigned int compareIndexedValues(const void *a, const void *b) {
+    return ((IndexedValue *)a)->value - ((IndexedValue *)b)->value;
 }
 
 void tmu_produce_autoencoder_example(
@@ -1463,8 +1473,8 @@ void tmu_produce_autoencoder_example(
         int target,
         int target_value,
         int accumulation,
-		unsigned int *category_indices,
-		int categories_indecies_size
+		unsigned int *data_col,
+		int experts
 )
 {
 	void store_to_X(int row, unsigned int *indptr_row, unsigned int *indices_row, int number_of_features, unsigned int *X);
@@ -1494,19 +1504,49 @@ void tmu_produce_autoencoder_example(
 	}
 
 	if (target_value) {
-		for (int a = 0; a < accumulation; ++a) {
-			// Pick example randomly among positive examples
-			if (categories_indecies_size > 0 && a < categories_indecies_size)
-			{
-				row = indices_col[category_indices[a]];
+		int data_col_size = sizeof(data_col) / sizeof(data_col[0]);
+		if (experts > 0 && data_col_size > 0 && data_col_size >= accumulation)
+		{
+			// Create an array of IndexedValue to store both value and index
+			IndexedValue *indexed_data = malloc(accumulation * sizeof(IndexedValue));
+
+			// Populate the array with values and their original indices
+			for (int i = 0; i < accumulation; i++) {
+				indexed_data[i].value = data_col[i];
+				indexed_data[i].index = i;
 			}
-			else{
+
+			// Sort the array of IndexedValue based on values
+			qsort(indexed_data, accumulation, sizeof(IndexedValue), compareIndexedValues);
+
+			int size_per_category = accumulation / experts;
+			int remainder = accumulation % experts;
+
+			int current_index = 0;
+
+			for (int category = 1; category <= experts; category++) {
+				int indices_in_group = size_per_category + (category <= remainder ? 1 : 0);
+
+				for (int a = 0; a < size_per_category; ++a) {
+					//printf(" %d", indexed_data[current_index].index);
+					row = indices_col[indexed_data[a].index];
+					store_to_X(row,indptr_row,indices_row,number_of_features,X);
+					current_index++;
+				}
+			}
+			free(indexed_data);
+		}
+		else
+		{
+			for (int a = 0; a < accumulation; ++a) {
+				// Pick example randomly among positive examples
 				int random_index = indptr_col[active_output[target]] + (rand() % (indptr_col[active_output[target]+1] - indptr_col[active_output[target]]));
 				row = indices_col[random_index];
-			}			
-			store_to_X(row,indptr_row,indices_row,number_of_features,X);
+				store_to_X(row,indptr_row,indices_row,number_of_features,X);
+			}
 		}
-	} else {
+	} 
+	else {
 		int a = 0;
 		while (a < accumulation) {
 			row = generate_random(number_of_rows);
