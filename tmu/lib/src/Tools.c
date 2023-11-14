@@ -92,16 +92,16 @@ void tmu_produce_autoencoder_example(
 		if (experts > 0 && data_col_size > 0 && data_col_size >= accumulation)
 		{
 			// Create an array of IndexedValue to store both value and index
-			IndexedValue *indexed_data = malloc(accumulation * sizeof(IndexedValue));
+			IndexedValue *indexed_data = malloc(data_col_size * sizeof(IndexedValue));
 
 			// Populate the array with values and their original indices
-			for (int i = 0; i < accumulation; i++) {
+			for (int i = 0; i < data_col_size; i++) {
 				indexed_data[i].value = data_col[i];
 				indexed_data[i].index = i;
 			}
 
 			// Sort the array of IndexedValue based on values
-			qsort(indexed_data, accumulation, sizeof(IndexedValue), compareIndexedValues);
+			qsort(indexed_data, data_col_size, sizeof(IndexedValue), compareIndexedValues);
 
 			int size_per_category = accumulation / experts;
 			int remainder = accumulation % experts;
