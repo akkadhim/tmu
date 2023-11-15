@@ -26,6 +26,9 @@ https://arxiv.org/abs/1905.09688
 */
 
 #include <curand_kernel.h>
+#include <thrust/sort.h>
+#include <thrust/device_ptr.h>
+#include <thrust/device_vector.h>
 
 extern "C"
 {
@@ -33,11 +36,7 @@ extern "C"
 		unsigned int value;
 		int index;
 	} IndexedValue;
-
-	unsigned int compareIndexedValues(const void *a, const void *b) {
-		return ((IndexedValue *)a)->value - ((IndexedValue *)b)->value;
-	}
-
+	
 	__device__ int binary_search(unsigned int *indices, int index, int size)
 	{
 			int l = 0;
@@ -130,20 +129,18 @@ extern "C"
 		if (target_value) {
 			int data_col_size = sizeof(data_col) / sizeof(data_col[0]);
 			if (experts > 0 && data_col_size > 0 && data_col_size >= accumulation) {
-				IndexedValue *indexed_data;
-				cudaMalloc((void **)&indexed_data, data_col_size * sizeof(IndexedValue));
+				thrust::device_vector<IndexedValue> indexed_data(data_col_size);
 
-				// Copy data_col to device
-				cudaMemcpy(indexed_data, data_col, data_col_size * sizeof(unsigned int), cudaMemcpyHostToDevice);
-
-				// Populate indexed_data on device
-				for (int i = 0; i < data_col_size; i++) {
+				// Fill indexed_data with the data.
+				for (int i = 0; i < data_col_size; ++i) {
 					indexed_data[i].value = data_col[i];
 					indexed_data[i].index = i;
 				}
 
-				// Sort the array of IndexedValue on device based on values
-				qsort(indexed_data, data_col_size, sizeof(IndexedValue), compareIndexedValues);
+				// Sort indexed_data
+				thrust::sort(indexed_data.begin(), indexed_data.end(),
+					[](const IndexedValue& a, const IndexedValue& b) { return a.value < b.value; });
+
 
 				int size_per_category = accumulation / experts;
 				int remainder = accumulation % experts;
