@@ -29,6 +29,15 @@ https://arxiv.org/abs/1905.09688
 
 extern "C"
 {
+	typedef struct {
+		unsigned int value;
+		int index;
+	} IndexedValue;
+
+	unsigned int compareIndexedValues(const void *a, const void *b) {
+		return ((IndexedValue *)a)->value - ((IndexedValue *)b)->value;
+	}
+
 	__device__ int binary_search(unsigned int *indices, int index, int size)
 	{
 			int l = 0;
@@ -119,25 +128,58 @@ extern "C"
 		}
 	
 		if (target_value) {
-			for (int a = 0; a < accumulation; ++a) {
-				// Pick example randomly among positive examples
-				if (categories_indecies_size > 0 && a < categories_indecies_size)
-				{
-					row = indices_col[category_indices[a]];
+			int data_col_size = sizeof(data_col) / sizeof(data_col[0]);
+			if (experts > 0 && data_col_size > 0 && data_col_size >= accumulation) {
+				IndexedValue *indexed_data;
+				cudaMalloc((void **)&indexed_data, data_col_size * sizeof(IndexedValue));
+
+				// Copy data_col to device
+				cudaMemcpy(indexed_data, data_col, data_col_size * sizeof(unsigned int), cudaMemcpyHostToDevice);
+
+				// Populate indexed_data on device
+				for (int i = 0; i < data_col_size; i++) {
+					indexed_data[i].value = data_col[i];
+					indexed_data[i].index = i;
 				}
-				else{
+
+				// Sort the array of IndexedValue on device based on values
+				qsort(indexed_data, data_col_size, sizeof(IndexedValue), compareIndexedValues);
+
+				int size_per_category = accumulation / experts;
+				int remainder = accumulation % experts;
+				int current_index = 0;
+				for (int category = 1; category <= experts; category++) {
+					int indices_in_group = size_per_category + (category <= remainder ? 1 : 0);
+					for (int a = 0; a < size_per_category; ++a) {
+						row = indices_col[indexed_data[a].index];
+						for (int k = indptr_row[row]; k < indptr_row[row+1]; ++k) {
+							int chunk_nr = indices_row[k] / 32;
+							int chunk_pos = indices_row[k] % 32;
+							X[chunk_nr] |= (1U << chunk_pos);
+
+							chunk_nr = (indices_row[k] + number_of_features) / 32;
+							chunk_pos = (indices_row[k] + number_of_features) % 32;
+							X[chunk_nr] &= ~(1U << chunk_pos);
+						}
+						current_index++;
+					}
+				}
+				cudaFree(indexed_data);
+			} 
+			else
+			{
+				for (int a = 0; a < accumulation; ++a) {
 					int random_index = indptr_col[active_output[target]] + (curand(&localState) % (indptr_col[active_output[target]+1] - indptr_col[active_output[target]]));
 					row = indices_col[random_index];
-				}		
-				
-				for (int k = indptr_row[row]; k < indptr_row[row+1]; ++k) {
-					int chunk_nr = indices_row[k] / 32;
-					int chunk_pos = indices_row[k] % 32;
-					X[chunk_nr] |= (1U << chunk_pos);
+					for (int k = indptr_row[row]; k < indptr_row[row+1]; ++k) {
+						int chunk_nr = indices_row[k] / 32;
+						int chunk_pos = indices_row[k] % 32;
+						X[chunk_nr] |= (1U << chunk_pos);
 
-					chunk_nr = (indices_row[k] + number_of_features) / 32;
-					chunk_pos = (indices_row[k] + number_of_features) % 32;
-					X[chunk_nr] &= ~(1U << chunk_pos);
+						chunk_nr = (indices_row[k] + number_of_features) / 32;
+						chunk_pos = (indices_row[k] + number_of_features) % 32;
+						X[chunk_nr] &= ~(1U << chunk_pos);
+					}
 				}
 			}
 		} else {

@@ -91,10 +91,8 @@ void tmu_produce_autoencoder_example(
 		int data_col_size = sizeof(data_col) / sizeof(data_col[0]);
 		if (experts > 0 && data_col_size > 0 && data_col_size >= accumulation)
 		{
-			// Create an array of IndexedValue to store both value and index
 			IndexedValue *indexed_data = malloc(data_col_size * sizeof(IndexedValue));
 
-			// Populate the array with values and their original indices
 			for (int i = 0; i < data_col_size; i++) {
 				indexed_data[i].value = data_col[i];
 				indexed_data[i].index = i;
@@ -105,12 +103,9 @@ void tmu_produce_autoencoder_example(
 
 			int size_per_category = accumulation / experts;
 			int remainder = accumulation % experts;
-
 			int current_index = 0;
-
 			for (int category = 1; category <= experts; category++) {
 				int indices_in_group = size_per_category + (category <= remainder ? 1 : 0);
-
 				for (int a = 0; a < size_per_category; ++a) {
 					//printf(" %d", indexed_data[current_index].index);
 					row = indices_col[indexed_data[a].index];
