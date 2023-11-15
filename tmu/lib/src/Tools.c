@@ -87,25 +87,36 @@ void tmu_produce_autoencoder_example(
 		return;
 	}
 
-	if (target_value) {
-		int data_col_size = sizeof(data_col) / sizeof(data_col[0]);
-		if (experts > 0 && data_col_size > 0 && data_col_size >= accumulation)
-		{
-			IndexedValue *indexed_data = malloc(data_col_size * sizeof(IndexedValue));
+	int data_col_size = sizeof(data_col) / sizeof(data_col[0]);
+	if (experts > 0 && data_col_size > 0 && data_col_size >= accumulation)
+	{
+		IndexedValue *indexed_data = malloc(data_col_size * sizeof(IndexedValue));
 
-			for (int i = 0; i < data_col_size; i++) {
-				indexed_data[i].value = data_col[i];
-				indexed_data[i].index = i;
+		for (int i = 0; i < data_col_size; i++) {
+			indexed_data[i].value = data_col[i];
+			indexed_data[i].index = i;
+		}
+
+		// Sort the array of IndexedValue based on values
+		qsort(indexed_data, data_col_size, sizeof(IndexedValue), compareIndexedValues);
+
+		int size_per_category = accumulation / experts;
+		int remainder = accumulation % experts;
+		int current_index = 0;
+		for (int category = 1; category <= experts + 1; category++) {
+			if (category == experts + 1)
+			{
+				int a = 0;
+				while (a < size_per_category) {
+					row = generate_random(number_of_rows);
+
+					if (bsearch(&row, &indices_col[indptr_col[active_output[target]]], indptr_col[active_output[target]+1] - indptr_col[active_output[target]], sizeof(unsigned int), compareints) == NULL) {
+						store_to_X(row,indptr_row,indices_row,number_of_features,X);
+						a++;
+					}
+				}
 			}
-
-			// Sort the array of IndexedValue based on values
-			qsort(indexed_data, data_col_size, sizeof(IndexedValue), compareIndexedValues);
-
-			int size_per_category = accumulation / experts;
-			int remainder = accumulation % experts;
-			int current_index = 0;
-			for (int category = 1; category <= experts; category++) {
-				int indices_in_group = size_per_category + (category <= remainder ? 1 : 0);
+			else{
 				for (int a = 0; a < size_per_category; ++a) {
 					//printf(" %d", indexed_data[current_index].index);
 					row = indices_col[indexed_data[a].index];
@@ -113,29 +124,23 @@ void tmu_produce_autoencoder_example(
 					current_index++;
 				}
 			}
-			free(indexed_data);
 		}
-		else
-		{
-			for (int a = 0; a < accumulation; ++a) {
-				// Pick example randomly among positive examples
-				int random_index = indptr_col[active_output[target]] + (rand() % (indptr_col[active_output[target]+1] - indptr_col[active_output[target]]));
-				row = indices_col[random_index];
-				store_to_X(row,indptr_row,indices_row,number_of_features,X);
-			}
-		}
-	} 
-	else {
-		int a = 0;
-		while (a < accumulation) {
-			row = generate_random(number_of_rows);
-
-			if (bsearch(&row, &indices_col[indptr_col[active_output[target]]], indptr_col[active_output[target]+1] - indptr_col[active_output[target]], sizeof(unsigned int), compareints) == NULL) {
-				store_to_X(row,indptr_row,indices_row,number_of_features,X);
-				a++;
-			}
+		free(indexed_data);
+	}
+	else
+	{
+		for (int a = 0; a < accumulation; ++a) {
+			// Pick example randomly among positive examples
+			int random_index = indptr_col[active_output[target]] + (rand() % (indptr_col[active_output[target]+1] - indptr_col[active_output[target]]));
+			row = indices_col[random_index];
+			store_to_X(row,indptr_row,indices_row,number_of_features,X);
 		}
 	}
+	// if (target_value) {
+	// } 
+	// else {
+		
+	// }
 }
 
 void store_to_X(int row, unsigned int *indptr_row, unsigned int *indices_row, int number_of_features, unsigned int *X){
