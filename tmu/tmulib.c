@@ -1504,35 +1504,28 @@ void tmu_produce_autoencoder_example(
 	}
 
 	if (target_value) {
-		int data_col_size = sizeof(data_col) / sizeof(data_col[0]);
-		if (experts > 0 && data_col_size > 0 && data_col_size >= accumulation)
+		int startIndex = indptr_col[active_output[target]];
+		int total_rows = (indptr_col[active_output[target]+1] - startIndex);
+		if (experts > 0 && total_rows >= accumulation)
 		{
-			// Create an array of IndexedValue to store both value and index
-			IndexedValue *indexed_data = malloc(accumulation * sizeof(IndexedValue));
+			IndexedValue *indexed_data = malloc(total_rows * sizeof(IndexedValue));
 
-			// Populate the array with values and their original indices
-			for (int i = 0; i < accumulation; i++) {
-				indexed_data[i].value = data_col[i];
-				indexed_data[i].index = i;
+			for (int i = 0; i < total_rows; i++) {
+				indexed_data[i].value = data_col[startIndex + i];
+				indexed_data[i].index = startIndex + i;
 			}
 
 			// Sort the array of IndexedValue based on values
-			qsort(indexed_data, accumulation, sizeof(IndexedValue), compareIndexedValues);
+			qsort(indexed_data, total_rows, sizeof(IndexedValue), compareIndexedValues);
 
 			int size_per_category = accumulation / experts;
-			int remainder = accumulation % experts;
-
 			int current_index = 0;
-
 			for (int category = 1; category <= experts; category++) {
-				int indices_in_group = size_per_category + (category <= remainder ? 1 : 0);
-
 				for (int a = 0; a < size_per_category; ++a) {
-					//printf(" %d", indexed_data[current_index].index);
-					row = indices_col[indexed_data[a].index];
+					row = indices_col[indexed_data[a + current_index].index];
 					store_to_X(row,indptr_row,indices_row,number_of_features,X);
-					current_index++;
 				}
+				current_index = current_index + size_per_category;
 			}
 			free(indexed_data);
 		}
