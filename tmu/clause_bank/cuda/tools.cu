@@ -27,16 +27,19 @@ https://arxiv.org/abs/1905.09688
 
 #include <curand_kernel.h>
 #include <thrust/sort.h>
-#include <thrust/device_ptr.h>
 #include <thrust/device_vector.h>
 
-extern "C"
+extern "C++"
 {
 	typedef struct {
 		unsigned int value;
 		int index;
 	} IndexedValue;
-	
+
+	__device__ int compareIndexedValues(const void *a, const void *b) {
+		return ((IndexedValue *)a)->value - ((IndexedValue *)b)->value;
+	}
+
 	__device__ int binary_search(unsigned int *indices, int index, int size)
 	{
 			int l = 0;
@@ -129,17 +132,18 @@ extern "C"
 		if (target_value) {
 			int data_col_size = sizeof(data_col) / sizeof(data_col[0]);
 			if (experts > 0 && data_col_size > 0 && data_col_size >= accumulation) {
-				thrust::device_vector<IndexedValue> indexed_data(data_col_size);
+				IndexedValue *indexed_data = (IndexedValue *)malloc(data_col_size * sizeof(IndexedValue));
 
-				// Fill indexed_data with the data.
-				for (int i = 0; i < data_col_size; ++i) {
+				for (int i = 0; i < data_col_size; i++) {
 					indexed_data[i].value = data_col[i];
 					indexed_data[i].index = i;
 				}
 
-				// Sort indexed_data
-				thrust::sort(indexed_data.begin(), indexed_data.end(),
-					[](const IndexedValue& a, const IndexedValue& b) { return a.value < b.value; });
+				thrust::sort(thrust::device, indexed_data, indexed_data + data_col_size, 
+				[] __device__ (const IndexedValue& a, const IndexedValue& b) { 
+					return a.value < b.value; 
+				});
+				//qsort(indexed_data, data_col_size, sizeof(IndexedValue), compareIndexedValues);
 
 
 				int size_per_category = accumulation / experts;
