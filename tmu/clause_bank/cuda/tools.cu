@@ -140,7 +140,7 @@ extern "C++"
 				}
 
 				thrust::sort(thrust::device, indexed_data, indexed_data + data_col_size, 
-				[] __device__ (const IndexedValue& a, const IndexedValue& b) { 
+				[](const IndexedValue& a, const IndexedValue& b) { 
 					return a.value < b.value; 
 				});
 				//qsort(indexed_data, data_col_size, sizeof(IndexedValue), compareIndexedValues);
@@ -150,7 +150,7 @@ extern "C++"
 				int remainder = accumulation % experts;
 				int current_index = 0;
 				for (int category = 1; category <= experts; category++) {
-					int indices_in_group = size_per_category + (category <= remainder ? 1 : 0);
+					//int indices_in_group = size_per_category + (category <= remainder ? 1 : 0);
 					for (int a = 0; a < size_per_category; ++a) {
 						row = indices_col[indexed_data[a].index];
 						for (int k = indptr_row[row]; k < indptr_row[row+1]; ++k) {
