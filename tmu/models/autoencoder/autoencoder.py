@@ -245,22 +245,11 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
 
         return literal_active
 
-    def categorize_data(self, data, experts):
-        points_per_category = len(data) // experts
-        sorted_indices = np.argsort(data)
-        category_indices = [[] for _ in range(experts)]
-        for i, index in enumerate(sorted_indices):
-            category = min(i // points_per_category, experts - 1)
-            category_indices[category].append(index)
-
-        return category_indices
-
     def fit(self, X, number_of_examples=2000, shuffle=True, *kwargs):
         X_csr = csr_matrix(X.reshape(X.shape[0], -1))
         X_csc = csc_matrix(X.reshape(X.shape[0], -1)).sorted_indices()
         self.init(X_csr, Y=None)
 
-        categories_indices = self.categorize_data(X_csc.data, self.experts)
         print("Fit with categories")
 
         if not np.array_equal(self.X_train, np.concatenate((X_csr.indptr, X_csr.indices))):
