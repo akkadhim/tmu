@@ -1515,18 +1515,29 @@ void tmu_produce_autoencoder_example(
 				indexed_data[i].index = startIndex + i;
 			}
 
-			// Sort the array of IndexedValue based on values
 			qsort(indexed_data, total_rows, sizeof(IndexedValue), compareIndexedValues);
 
 			int size_per_category = accumulation / experts;
-			int current_index = 0;
+			int category_start_index = 0;
 			for (int category = 1; category <= experts; category++) {
 				for (int a = 0; a < size_per_category; ++a) {
-					row = indices_col[indexed_data[a + current_index].index];
+
+					int random_index_data = category_start_index + (rand() % size_per_category);
+					int random_index = indexed_data[random_index_data].index;
+					row = indices_col[random_index];	
+
+					//row = indices_col[indexed_data[a + category_start_index].index];
+
 					store_to_X(row,indptr_row,indices_row,number_of_features,X);
 				}
-				current_index = current_index + size_per_category;
+				category_start_index = category_start_index + size_per_category;
 			}
+			// for (int i = 0; i < accumulation; i++)
+			// {
+			// 	row = indices_col[indexed_data[i].index];
+			// 	store_to_X(row,indptr_row,indices_row,number_of_features,X);
+			// }
+			
 			free(indexed_data);
 		}
 		else
