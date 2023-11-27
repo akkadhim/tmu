@@ -39,7 +39,7 @@ void tmu_produce_autoencoder_example(
     int target_value,
     int accumulation,
     unsigned int *data_col,
-    int experts
+    int categories
 );
 
 void tmu_encode(

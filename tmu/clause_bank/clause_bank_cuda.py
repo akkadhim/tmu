@@ -385,7 +385,7 @@ class ImplClauseBankCUDA(BaseClauseBank):
             encoded_X,
             target,
             accumulation,
-            experts,
+            categories,
             **kwargs
     ):
         # Log unknown arguments only once
@@ -429,7 +429,7 @@ class ImplClauseBankCUDA(BaseClauseBank):
             int(target_value),
             int(accumulation),
             X_csc_data_gpu,
-            int(experts))
+            int(categories))
 
         self.cuda_ctx.synchronize()
 

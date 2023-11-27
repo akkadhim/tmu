@@ -51,11 +51,11 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             literal_insertion_state=-1,
             squared_weight_update_p=False,
             seed=None,
-            experts = 0
+            categories = 0
     ):
         self.output_active = output_active
         self.accumulation = accumulation
-        self.experts = experts
+        self.categories = categories
         super().__init__(
             number_of_clauses=number_of_clauses,
             T=T,
@@ -275,7 +275,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                     encoded_X=self.encoded_X_train,
                     target=i,
                     accumulation=self.accumulation,
-                    experts= self.experts,
+                    categories= self.categories,
                     target_true_p=self.feature_true_probability[self.output_active[i]]
                 )
 
@@ -351,7 +351,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
         weights = self.weight_banks[the_class].get_weights()
 
         for e in range(number_of_examples):
-            Xu, Yu = self.clause_bank.produce_autoencoder_example(self.encoded_X_test, the_class, self.accumulation, experts=0, target_true_p= self.feature_true_probability[self.output_active[the_class]])
+            Xu, Yu = self.clause_bank.produce_autoencoder_example(self.encoded_X_test, the_class, self.accumulation, categories=0, target_true_p= self.feature_true_probability[self.output_active[the_class]])
             clause_outputs = self.clause_bank.calculate_clause_outputs_predict(Xu, 0)
 
             if positive_polarity:

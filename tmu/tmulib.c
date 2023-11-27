@@ -1474,7 +1474,7 @@ void tmu_produce_autoencoder_example(
         int target_value,
         int accumulation,
 		unsigned int *data_col,
-		int experts
+		int categories
 )
 {
 	void store_to_X(int row, unsigned int *indptr_row, unsigned int *indices_row, int number_of_features, unsigned int *X);
@@ -1506,7 +1506,7 @@ void tmu_produce_autoencoder_example(
 	if (target_value) {
 		int startIndex = indptr_col[active_output[target]];
 		int total_rows = (indptr_col[active_output[target]+1] - startIndex);
-		if (experts > 0 && total_rows >= accumulation)
+		if (categories > 0 && total_rows >= accumulation)
 		{
 			IndexedValue *indexed_data = malloc(total_rows * sizeof(IndexedValue));
 
@@ -1517,9 +1517,9 @@ void tmu_produce_autoencoder_example(
 
 			qsort(indexed_data, total_rows, sizeof(IndexedValue), compareIndexedValues);
 
-			int size_per_category = accumulation / experts;
+			int size_per_category = accumulation / categories;
 			int category_start_index = 0;
-			for (int category = 1; category <= experts; category++) {
+			for (int category = 1; category <= categories; category++) {
 				for (int a = 0; a < size_per_category; ++a) {
 
 					int random_index_data = category_start_index + (rand() % size_per_category);

@@ -75,7 +75,7 @@ extern "C++"
         int target_value,
 		int accumulation,
 		unsigned int *data_col,
-		int experts
+		int categories
 	)
 	{
 		int index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -131,7 +131,7 @@ extern "C++"
 	
 		if (target_value) {
 			int data_col_size = sizeof(data_col) / sizeof(data_col[0]);
-			if (experts > 0 && data_col_size > 0 && data_col_size >= accumulation) {
+			if (categories > 0 && data_col_size > 0 && data_col_size >= accumulation) {
 				IndexedValue *indexed_data = (IndexedValue *)malloc(data_col_size * sizeof(IndexedValue));
 
 				for (int i = 0; i < data_col_size; i++) {
@@ -146,10 +146,10 @@ extern "C++"
 				//qsort(indexed_data, data_col_size, sizeof(IndexedValue), compareIndexedValues);
 
 
-				int size_per_category = accumulation / experts;
-				int remainder = accumulation % experts;
+				int size_per_category = accumulation / categories;
+				int remainder = accumulation % categories;
 				int current_index = 0;
-				for (int category = 1; category <= experts; category++) {
+				for (int category = 1; category <= categories; category++) {
 					//int indices_in_group = size_per_category + (category <= remainder ? 1 : 0);
 					for (int a = 0; a < size_per_category; ++a) {
 						row = indices_col[indexed_data[a].index];
