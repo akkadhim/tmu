@@ -54,108 +54,126 @@ void tmu_produce_autoencoder_example(
         unsigned int *indices_col,
         int number_of_cols,
         unsigned int *X,
-        int target,
-        int target_value,
+		unsigned int *Y, 
         int accumulation,
 		unsigned int *data_col,
 		int categories
 )
 {
-	void store_to_X(int row, unsigned int *indptr_row, unsigned int *indices_row, int number_of_features, unsigned int *X);
+	void store_to_X(int row, int output_pos, unsigned int *indptr_row, unsigned int *indices_row, int number_of_cols, unsigned int *X);
 
 	int row;
 
 	int number_of_features = number_of_cols;
 	int number_of_literals = 2*number_of_features;
-
 	unsigned int number_of_literal_chunks = (number_of_literals-1)/32 + 1;
 
-	// Initialize example vector X
-	memset(X, 0, number_of_literal_chunks * sizeof(unsigned int));
-	for (int k = number_of_features; k < number_of_literals; ++k) {
-		int chunk_nr = k / 32;
-		int chunk_pos = k % 32;
-		X[chunk_nr] |= (1U << chunk_pos);
-	}
+	//int number_of_literals = 2*number_of_cols;
+	//int number_of_literal_chunks= (((number_of_literals-1)/32 + 1));
 	
-	if ((indptr_col[active_output[target]+1] - indptr_col[active_output[target]] == 0) || (indptr_col[active_output[target]+1] - indptr_col[active_output[target]] == number_of_rows)) {
-		// If no positive/negative examples, produce a random example
-		for (int a = 0; a < accumulation; ++a) {
-			row = generate_random(number_of_rows);
-			store_to_X(row,indptr_row,indices_row,number_of_features,X);
+
+	// Loop over active outputs, producing one example per output
+	for (int o = 0; o < number_of_active_outputs; ++o) {
+		int output_pos = o*number_of_literal_chunks;
+
+		// Initialize example with false features
+		int	number_of_feature_chunks = (((number_of_literals-1)/32 + 1));
+		for (int k = 0; k < number_of_feature_chunks - 1; ++k) {
+			X[output_pos + k] = 0U;
 		}
-		return;
-	}
 
-	if (target_value) {
-		int startIndex = indptr_col[active_output[target]];
-		int total_rows = (indptr_col[active_output[target]+1] - startIndex);
-		if (categories > 0 && total_rows >= accumulation)
-		{
-			IndexedValue *indexed_data = malloc(total_rows * sizeof(IndexedValue));
-
-			for (int i = 0; i < total_rows; i++) {
-				indexed_data[i].value = data_col[startIndex + i];
-				indexed_data[i].index = startIndex + i;
-			}
-
-			qsort(indexed_data, total_rows, sizeof(IndexedValue), compareIndexedValues);
-
-			int size_per_category = accumulation / categories;
-			int category_start_index = 0;
-			for (int category = 1; category <= categories; category++) {
-				for (int a = 0; a < size_per_category; ++a) {
-
-					int random_index_data = category_start_index + (rand() % size_per_category);
-					int random_index = indexed_data[random_index_data].index;
-					row = indices_col[random_index];	
-
-					//row = indices_col[indexed_data[a + category_start_index].index];
-
-					store_to_X(row,indptr_row,indices_row,number_of_features,X);
-				}
-				category_start_index = category_start_index + size_per_category;
-			}
-			// for (int i = 0; i < accumulation; i++)
-			// {
-			// 	row = indices_col[indexed_data[i].index];
-			// 	store_to_X(row,indptr_row,indices_row,number_of_features,X);
-			// }
-			
-			free(indexed_data);
+		for (int k = number_of_feature_chunks - 1; k < number_of_literal_chunks; ++k) {
+			X[output_pos + k] = ~0U;
 		}
-		else
-		{
+
+		for (int k = (number_of_feature_chunks-1)*32; k < number_of_cols; ++k) {
+			int chunk_nr = k / 32;
+			int chunk_pos = k % 32;
+			X[output_pos + chunk_nr] &= ~(1U << chunk_pos);
+		}
+
+		if ((indptr_col[active_output[o]+1] - indptr_col[active_output[o]] == 0) || (indptr_col[active_output[o]+1] - indptr_col[active_output[o]] == number_of_rows)) {
+			// If no positive/negative examples, produce a random example
 			for (int a = 0; a < accumulation; ++a) {
-				// Pick example randomly among positive examples
-				int random_index = indptr_col[active_output[target]] + (rand() % (indptr_col[active_output[target]+1] - indptr_col[active_output[target]]));
-				row = indices_col[random_index];
-				store_to_X(row,indptr_row,indices_row,number_of_features,X);
+				row = generate_random(number_of_rows);
+				store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
 			}
 		}
-	} 
-	else {
-		int a = 0;
-		while (a < accumulation) {
-			row = generate_random(number_of_rows);
 
-			if (bsearch(&row, &indices_col[indptr_col[active_output[target]]], indptr_col[active_output[target]+1] - indptr_col[active_output[target]], sizeof(unsigned int), compareints) == NULL) {
-				store_to_X(row,indptr_row,indices_row,number_of_features,X);
-				a++;
+		if (indptr_col[active_output[o]+1] - indptr_col[active_output[o]] == 0) {
+			// If no positive examples, produce a negative output value
+			Y[o] = 0;
+			continue;
+		} else if (indptr_col[active_output[o]+1] - indptr_col[active_output[o]] == number_of_rows) {
+			// If no negative examples, produce a positive output value
+			Y[o] = 1;
+			continue;
+		} 
+		
+		// Randomly select either positive or negative example
+		Y[o] = rand() % 2;
+	
+		if (Y[o]) {
+			int startIndex = indptr_col[active_output[o]];
+			int total_rows = (indptr_col[active_output[o]+1] - startIndex);
+			if (categories > 0 && total_rows >= accumulation)
+			{
+				IndexedValue *indexed_data = malloc(total_rows * sizeof(IndexedValue));
+
+				for (int i = 0; i < total_rows; i++) {
+					indexed_data[i].value = data_col[startIndex + i];
+					indexed_data[i].index = startIndex + i;
+				}
+
+				qsort(indexed_data, total_rows, sizeof(IndexedValue), compareIndexedValues);
+
+				int size_per_category = accumulation / categories;
+				int category_start_index = 0;
+				for (int category = 1; category <= categories; category++) {
+					for (int a = 0; a < size_per_category; ++a) {
+						int random_index_data = category_start_index + (rand() % size_per_category);
+						int random_index = indexed_data[random_index_data].index;
+						row = indices_col[random_index];	
+						//pick one by one without rondomize inside each category
+						//row = indices_col[indexed_data[a + category_start_index].index];
+						store_to_X(row,output_pos,indptr_row,indices_row,number_of_features,X);
+					}
+					category_start_index = category_start_index + size_per_category;
+				}			
+				free(indexed_data);
+			}
+			else
+			{
+				for (int a = 0; a < accumulation; ++a) {
+					// Pick example randomly among positive examples
+					int random_index = indptr_col[active_output[o]] + (rand() % (indptr_col[active_output[o]+1] - indptr_col[active_output[o]]));
+					row = indices_col[random_index];
+					store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
+				}
+			}
+		} else {
+			int a = 0;
+			while (a < accumulation) {
+				row = rand() % number_of_rows;
+
+				if (bsearch(&row, &indices_col[indptr_col[active_output[o]]], indptr_col[active_output[o]+1] - indptr_col[active_output[o]], sizeof(unsigned int), compareints) == NULL) {
+					store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
+					a++;
+				}
 			}
 		}
 	}
 }
 
-void store_to_X(int row, unsigned int *indptr_row, unsigned int *indices_row, int number_of_features, unsigned int *X){
+void store_to_X(int row, int output_pos, unsigned int *indptr_row, unsigned int *indices_row, int number_of_cols, unsigned int *X){
 	for (int k = indptr_row[row]; k < indptr_row[row+1]; ++k) {
 		int chunk_nr = indices_row[k] / 32;
 		int chunk_pos = indices_row[k] % 32;
-		X[chunk_nr] |= (1U << chunk_pos);
+		X[output_pos + chunk_nr] |= (1U << chunk_pos);
 
-		chunk_nr = (indices_row[k] + number_of_features) / 32;
-		chunk_pos = (indices_row[k] + number_of_features) % 32;
-		X[chunk_nr] &= ~(1U << chunk_pos);
+		chunk_nr = (indices_row[k] + number_of_cols) / 32;
+		chunk_pos = (indices_row[k] + number_of_cols) % 32;
+		X[output_pos + chunk_nr] &= ~(1U << chunk_pos);
 	}
 }
 

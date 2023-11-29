@@ -270,14 +270,9 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             update_clause = self.rng.random(self.number_of_clauses) <= (
                     self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
 
+            Xu, Yu = self.clause_bank.produce_autoencoder_example(X_csr, X_csc, self.output_active, self.accumulation, categories= self.categories)         
             for i in class_index:
-                Xu, Yu = self.clause_bank.produce_autoencoder_example(
-                    encoded_X=self.encoded_X_train,
-                    target=i,
-                    accumulation=self.accumulation,
-                    categories= self.categories,
-                    target_true_p=self.feature_true_probability[self.output_active[i]]
-                )
+                (target, encoded_X) = Yu[i], Xu[i].reshape((1, -1))
 
                 ta_chunk = self.output_active[i] // 32
                 chunk_pos = self.output_active[i] % 32
@@ -291,7 +286,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
 
                 literal_active[ta_chunk] &= ~(1 << chunk_pos)
 
-                self.update(i, Yu, Xu, update_clause * clause_active, literal_active)
+                self.update(i, target, encoded_X, update_clause * clause_active, literal_active)        
 
                 if self.feature_negation:
                     literal_active[ta_chunk_negated] = copy_literal_active_ta_chunk_negated

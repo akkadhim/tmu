@@ -390,29 +390,27 @@ class ClauseBank(BaseClauseBank):
 
     def produce_autoencoder_example(
             self,
-            encoded_X,
-            target,
-            accumulation,
-            categories,
-            target_true_p
-    ):
-        (X_csr, X_csc, active_output, X) = encoded_X
+            X_csr, 
+            X_csc, 
+            active_output, 
+            accumulation, 
+            categories, 
+        ):
+        X = np.ascontiguousarray(np.empty(int(self.number_of_ta_chunks * active_output.shape[0]), dtype=np.uint32))
+        Y = np.ascontiguousarray(np.empty(int(active_output.shape[0]), dtype=np.uint32))
 
-        target_value = self.rng.random() <= target_true_p
+        lib.tmu_produce_autoencoder_example(ffi.cast("unsigned int *", active_output.ctypes.data), 
+                                            active_output.shape[0],
+                                            ffi.cast("unsigned int *", np.ascontiguousarray(X_csr.indptr).ctypes.data),
+                                            ffi.cast("unsigned int *", np.ascontiguousarray(X_csr.indices).ctypes.data),
+                                            int(X_csr.shape[0]),
+                                            ffi.cast("unsigned int *", np.ascontiguousarray(X_csc.indptr).ctypes.data),
+                                            ffi.cast("unsigned int *", np.ascontiguousarray(X_csc.indices).ctypes.data),
+                                            int(X_csc.shape[1]),
+                                            ffi.cast("unsigned int *", X.ctypes.data),
+                                            ffi.cast("unsigned int *", Y.ctypes.data), 
+                                            int(accumulation),
+                                            ffi.cast("unsigned int *", np.ascontiguousarray(X_csc.data).ctypes.data),
+                                            int(categories))
 
-        lib.tmu_produce_autoencoder_example(ffi.cast("unsigned int *", active_output.ctypes.data), active_output.shape[0],
-                                             ffi.cast("unsigned int *", np.ascontiguousarray(X_csr.indptr).ctypes.data),
-                                             ffi.cast("unsigned int *", np.ascontiguousarray(X_csr.indices).ctypes.data),
-                                             int(X_csr.shape[0]),
-                                             ffi.cast("unsigned int *", np.ascontiguousarray(X_csc.indptr).ctypes.data),
-                                             ffi.cast("unsigned int *", np.ascontiguousarray(X_csc.indices).ctypes.data),
-                                             int(X_csc.shape[1]),
-                                             ffi.cast("unsigned int *", X.ctypes.data),
-                                             int(target),
-                                             int(target_value),
-                                             int(accumulation),
-                                             ffi.cast("unsigned int *", np.ascontiguousarray(X_csc.data).ctypes.data),
-                                             int(categories)
-                                             )
-
-        return  X.reshape((1, -1)), target_value
+        return X.reshape((len(active_output), -1)), Y

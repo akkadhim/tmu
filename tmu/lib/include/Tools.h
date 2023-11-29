@@ -35,8 +35,7 @@ void tmu_produce_autoencoder_example(
     unsigned int *indices_col,
     int number_of_cols,
     unsigned int *X,
-    int target,
-    int target_value,
+    unsigned int *Y, 
     int accumulation,
     unsigned int *data_col,
     int categories
