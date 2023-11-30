@@ -1547,23 +1547,15 @@ void tmu_produce_autoencoder_example(
 				int category_start_index = 0;
 				for (int category = 1; category <= categories; category++) {
 					for (int a = 0; a < size_per_category; ++a) {
-
-						int random_index_data = category_start_index + (rand() % size_per_category);
-						int random_index = indexed_data[random_index_data].index;
-						row = indices_col[random_index];	
-
-						//row = indices_col[indexed_data[a + category_start_index].index];
-
+						// int random_index_data = category_start_index + (rand() % size_per_category);
+						// int random_index = indexed_data[random_index_data].index;
+						// row = indices_col[random_index];	
+						//pick one by one without rondomize inside each category
+						row = indices_col[indexed_data[a + category_start_index].index];
 						store_to_X(row,output_pos,indptr_row,indices_row,number_of_features,X);
 					}
 					category_start_index = category_start_index + size_per_category;
-				}
-				// for (int i = 0; i < accumulation; i++)
-				// {
-				// 	row = indices_col[indexed_data[i].index];
-				// 	store_to_X(row,indptr_row,indices_row,number_of_features,X);
-				// }
-				
+				}			
 				free(indexed_data);
 			}
 			else
