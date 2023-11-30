@@ -246,11 +246,10 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
         return literal_active
 
     def fit(self, X, number_of_examples=2000, shuffle=True, *kwargs):
+        print("Starting the fitting...")
         X_csr = csr_matrix(X.reshape(X.shape[0], -1))
         X_csc = csc_matrix(X.reshape(X.shape[0], -1)).sorted_indices()
         self.init(X_csr, Y=None)
-
-        print("Fit with categories")
 
         if not np.array_equal(self.X_train, np.concatenate((X_csr.indptr, X_csr.indices))):
             self.encoded_X_train = self.clause_bank.prepare_X_autoencoder(X_csr, X_csc, self.output_active)
