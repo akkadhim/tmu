@@ -51,11 +51,13 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             literal_insertion_state=-1,
             squared_weight_update_p=False,
             seed=None,
-            categories = 0
+            categories = 0,
+            random_per_category = False
     ):
         self.output_active = output_active
         self.accumulation = accumulation
         self.categories = categories
+        self.random_per_category = random_per_category
         super().__init__(
             number_of_clauses=number_of_clauses,
             T=T,
@@ -269,7 +271,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             update_clause = self.rng.random(self.number_of_clauses) <= (
                     self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
 
-            Xu, Yu = self.clause_bank.produce_autoencoder_example(X_csr, X_csc, self.output_active, self.accumulation, categories= self.categories)         
+            Xu, Yu = self.clause_bank.produce_autoencoder_example(X_csr, X_csc, self.output_active, self.accumulation, categories= self.categories, random_per_category=self.random_per_category)         
             for i in class_index:
                 (target, encoded_X) = Yu[i], Xu[i].reshape((1, -1))
 

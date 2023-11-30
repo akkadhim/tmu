@@ -394,7 +394,8 @@ class ClauseBank(BaseClauseBank):
             X_csc, 
             active_output, 
             accumulation, 
-            categories, 
+            categories,
+            random_per_category
         ):
         X = np.ascontiguousarray(np.empty(int(self.number_of_ta_chunks * active_output.shape[0]), dtype=np.uint32))
         Y = np.ascontiguousarray(np.empty(int(active_output.shape[0]), dtype=np.uint32))
@@ -411,6 +412,7 @@ class ClauseBank(BaseClauseBank):
                                             ffi.cast("unsigned int *", Y.ctypes.data), 
                                             int(accumulation),
                                             ffi.cast("unsigned int *", np.ascontiguousarray(X_csc.data).ctypes.data),
-                                            int(categories))
+                                            int(categories),
+                                            int(random_per_category))
 
         return X.reshape((len(active_output), -1)), Y

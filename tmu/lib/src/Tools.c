@@ -57,7 +57,8 @@ void tmu_produce_autoencoder_example(
 		unsigned int *Y, 
         int accumulation,
 		unsigned int *data_col,
-		int categories
+		int categories,
+		int random_per_category
 )
 {
 	void store_to_X(int row, int output_pos, unsigned int *indptr_row, unsigned int *indices_row, int number_of_cols, unsigned int *X);
@@ -131,11 +132,16 @@ void tmu_produce_autoencoder_example(
 				int category_start_index = 0;
 				for (int category = 1; category <= categories; category++) {
 					for (int a = 0; a < size_per_category; ++a) {
-						// int random_index_data = category_start_index + (rand() % size_per_category);
-						// int random_index = indexed_data[random_index_data].index;
-						// row = indices_col[random_index];	
-						//pick one by one without rondomize inside each category
-						row = indices_col[indexed_data[a + category_start_index].index];
+						if (random_per_category)
+						{
+							//pick one by one without rondomize inside each category
+							int random_index_data = category_start_index + (rand() % size_per_category);
+							int random_index = indexed_data[random_index_data].index;
+							row = indices_col[random_index];	
+						}
+						else{
+							row = indices_col[indexed_data[a + category_start_index].index];
+						}
 						store_to_X(row,output_pos,indptr_row,indices_row,number_of_features,X);
 					}
 					category_start_index = category_start_index + size_per_category;
