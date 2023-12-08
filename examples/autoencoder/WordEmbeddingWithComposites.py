@@ -132,8 +132,7 @@ def main():
 		accumulation=args.accumulation, 
 		feature_negation=False, 
 		platform=args.device, 
-		output_balancing=True,
-		experts=args.experts
+		output_balancing=True
      )
 
 
@@ -147,14 +146,6 @@ def main():
 				tm.fit(X_train, number_of_examples=args.number_of_examples)
 
 			_LOGGER.info("\nEpoch #%d\n" % (e+1))
-
-			print("Calculating precision and recall\n")
-			precision = []
-			recall = []
-			for i in range(len(target_words)):
-				pres, rec = tm.clause_precision_recall(i, True, X_train, number_of_examples=1)
-				precision.append(pres)
-				recall.append(rec)
 
 			_LOGGER.info("Clauses\n")
 
