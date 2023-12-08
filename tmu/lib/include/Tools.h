@@ -39,7 +39,9 @@ void tmu_produce_autoencoder_example(
     int accumulation,
     unsigned int *data_col,
     int categories,
-    int random_per_category
+    int random_per_category,
+    int from_expert_index,
+    int expert_size
 );
 
 void tmu_encode(
