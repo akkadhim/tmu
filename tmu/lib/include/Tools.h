@@ -40,7 +40,7 @@ void tmu_produce_autoencoder_example(
     unsigned int *data_col,
     int categories,
     int random_per_category,
-    int from_expert_index,
+    int expert_start_index,
     int expert_size
 );
 

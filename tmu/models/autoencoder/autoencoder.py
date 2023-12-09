@@ -50,14 +50,10 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             feedback_rate_excluded_literals=1,
             literal_insertion_state=-1,
             squared_weight_update_p=False,
-            seed=None,
-            categories = 0,
-            random_per_category = False
+            seed=None
     ):
         self.output_active = output_active
         self.accumulation = accumulation
-        self.categories = categories
-        self.random_per_category = random_per_category
         super().__init__(
             number_of_clauses=number_of_clauses,
             T=T,
@@ -247,7 +243,16 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
 
         return literal_active
 
-    def fit(self, X, number_of_examples=2000, shuffle=True, *kwargs):
+    def fit(
+            self, 
+            X, 
+            number_of_examples=2000, 
+            categories=0,
+            random_per_category=False,
+            involved_datasets=[],
+            shuffle=True, 
+            *kwargs
+            ):
         print("Starting the fitting...")
         X_csr = csr_matrix(X.reshape(X.shape[0], -1))
         X_csc = csc_matrix(X.reshape(X.shape[0], -1)).sorted_indices()
@@ -261,37 +266,50 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
         literal_active = self.activate_literals()
 
         class_index = np.arange(self.number_of_classes, dtype=np.uint32)
-        for e in range(number_of_examples):
-            self.rng.shuffle(class_index)
 
-            average_absolute_weights = np.zeros(self.number_of_clauses, dtype=np.float32)
-            for i in class_index:
-                average_absolute_weights += np.absolute(self.weight_banks[i].get_weights())
-            average_absolute_weights /= self.number_of_classes
-            update_clause = self.rng.random(self.number_of_clauses) <= (
-                    self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
+        examples_per_expert = int(number_of_examples / len(involved_datasets))
+        for expert in range(len(involved_datasets)):
+            expert_start_index = involved_datasets[expert][1]
+            expert_size=involved_datasets[expert][2]
 
-            Xu, Yu = self.clause_bank.produce_autoencoder_example(X_csr, X_csc, self.output_active, self.accumulation, categories= self.categories, random_per_category=self.random_per_category)         
-            for i in class_index:
-                (target, encoded_X) = Yu[i], Xu[i].reshape((1, -1))
+            for e in range(examples_per_expert):
+                self.rng.shuffle(class_index)
 
-                ta_chunk = self.output_active[i] // 32
-                chunk_pos = self.output_active[i] % 32
-                copy_literal_active_ta_chunk = literal_active[ta_chunk]
+                average_absolute_weights = np.zeros(self.number_of_clauses, dtype=np.float32)
+                for i in class_index:
+                    average_absolute_weights += np.absolute(self.weight_banks[i].get_weights())
+                average_absolute_weights /= self.number_of_classes
+                update_clause = self.rng.random(self.number_of_clauses) <= (
+                        self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
 
-                if self.feature_negation:
-                    ta_chunk_negated = (self.output_active[i] + self.clause_bank.number_of_features) // 32
-                    chunk_pos_negated = (self.output_active[i] + self.clause_bank.number_of_features) % 32
-                    copy_literal_active_ta_chunk_negated = literal_active[ta_chunk_negated]
-                    literal_active[ta_chunk_negated] &= ~(1 << chunk_pos_negated)
+                Xu, Yu = self.clause_bank.produce_autoencoder_example(X_csr, 
+                                                                    X_csc, 
+                                                                    self.output_active, 
+                                                                    self.accumulation, 
+                                                                    categories = categories, 
+                                                                    random_per_category = random_per_category,
+                                                                    expert_start_index=expert_start_index,
+                                                                    expert_size=expert_size)         
+                for i in class_index:
+                    (target, encoded_X) = Yu[i], Xu[i].reshape((1, -1))
 
-                literal_active[ta_chunk] &= ~(1 << chunk_pos)
+                    ta_chunk = self.output_active[i] // 32
+                    chunk_pos = self.output_active[i] % 32
+                    copy_literal_active_ta_chunk = literal_active[ta_chunk]
 
-                self.update(i, target, encoded_X, update_clause * clause_active, literal_active)        
+                    if self.feature_negation:
+                        ta_chunk_negated = (self.output_active[i] + self.clause_bank.number_of_features) // 32
+                        chunk_pos_negated = (self.output_active[i] + self.clause_bank.number_of_features) % 32
+                        copy_literal_active_ta_chunk_negated = literal_active[ta_chunk_negated]
+                        literal_active[ta_chunk_negated] &= ~(1 << chunk_pos_negated)
 
-                if self.feature_negation:
-                    literal_active[ta_chunk_negated] = copy_literal_active_ta_chunk_negated
-                literal_active[ta_chunk] = copy_literal_active_ta_chunk
+                    literal_active[ta_chunk] &= ~(1 << chunk_pos)
+
+                    self.update(i, target, encoded_X, update_clause * clause_active, literal_active)        
+
+                    if self.feature_negation:
+                        literal_active[ta_chunk_negated] = copy_literal_active_ta_chunk_negated
+                    literal_active[ta_chunk] = copy_literal_active_ta_chunk
 
         return
 

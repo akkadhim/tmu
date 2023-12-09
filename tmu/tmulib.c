@@ -1474,7 +1474,9 @@ void tmu_produce_autoencoder_example(
         int accumulation,
 		unsigned int *data_col,
 		int categories,
-		int random_per_category
+		int random_per_category,
+		int expert_start_index,
+		int expert_size
 )
 {
 	void store_to_X(int row, int output_pos, unsigned int *indptr_row, unsigned int *indices_row, int number_of_cols, unsigned int *X);
@@ -1566,11 +1568,26 @@ void tmu_produce_autoencoder_example(
 			}
 			else
 			{
-				for (int a = 0; a < accumulation; ++a) {
-					// Pick example randomly among positive examples
-					int random_index = indptr_col[active_output[o]] + (rand() % (indptr_col[active_output[o]+1] - indptr_col[active_output[o]]));
-					row = indices_col[random_index];
-					store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
+				if (expert_size > 0)
+				{
+					int a = 0;
+					while (a < accumulation) {
+						int random_index = indptr_col[active_output[o]] + (rand() % (indptr_col[active_output[o]+1] - indptr_col[active_output[o]]));
+						row = indices_col[random_index];
+						if (row > expert_start_index && row < (expert_start_index + expert_size)) {
+							store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
+							a++;
+						}
+					}
+				}
+				else{
+					for (int a = 0; a < accumulation; ++a) {
+						// Pick example randomly among positive examples
+						int random_index = indptr_col[active_output[o]] + (rand() % (indptr_col[active_output[o]+1] - indptr_col[active_output[o]]));
+						row = indices_col[random_index];
+						store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
+					}
+					
 				}
 			}
 		} else {
@@ -2262,7 +2279,7 @@ static void *_cffi_types[] = {
 /*  3 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /*  4 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /*  5 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/*  6 */ _CFFI_OP(_CFFI_OP_FUNCTION, 236), // void()(float, float, int, int, int, int, int, int *, unsigned int *, unsigned int *, int, int, int, unsigned short *, unsigned short *, unsigned short *, unsigned short *, unsigned short *, unsigned short *)
+/*  6 */ _CFFI_OP(_CFFI_OP_FUNCTION, 238), // void()(float, float, int, int, int, int, int, int *, unsigned int *, unsigned int *, int, int, int, unsigned short *, unsigned short *, unsigned short *, unsigned short *, unsigned short *, unsigned short *)
 /*  7 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 13), // float
 /*  8 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 13),
 /*  9 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
@@ -2276,14 +2293,14 @@ static void *_cffi_types[] = {
 /* 17 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 18 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 19 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
-/* 20 */ _CFFI_OP(_CFFI_OP_POINTER, 235), // unsigned short *
+/* 20 */ _CFFI_OP(_CFFI_OP_POINTER, 237), // unsigned short *
 /* 21 */ _CFFI_OP(_CFFI_OP_NOOP, 20),
 /* 22 */ _CFFI_OP(_CFFI_OP_NOOP, 20),
 /* 23 */ _CFFI_OP(_CFFI_OP_NOOP, 20),
 /* 24 */ _CFFI_OP(_CFFI_OP_NOOP, 20),
 /* 25 */ _CFFI_OP(_CFFI_OP_NOOP, 20),
 /* 26 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 27 */ _CFFI_OP(_CFFI_OP_FUNCTION, 236), // void()(float, int, int *, unsigned int *, unsigned int *, int, int, int, unsigned short *, unsigned short *, unsigned short *, unsigned short *)
+/* 27 */ _CFFI_OP(_CFFI_OP_FUNCTION, 238), // void()(float, int, int *, unsigned int *, unsigned int *, int, int, int, unsigned short *, unsigned short *, unsigned short *, unsigned short *)
 /* 28 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 13),
 /* 29 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 30 */ _CFFI_OP(_CFFI_OP_NOOP, 14),
@@ -2297,7 +2314,7 @@ static void *_cffi_types[] = {
 /* 38 */ _CFFI_OP(_CFFI_OP_NOOP, 20),
 /* 39 */ _CFFI_OP(_CFFI_OP_NOOP, 20),
 /* 40 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 41 */ _CFFI_OP(_CFFI_OP_FUNCTION, 236), // void()(int *, int *, int, int, unsigned int *, int)
+/* 41 */ _CFFI_OP(_CFFI_OP_FUNCTION, 238), // void()(int *, int *, int, int, unsigned int *, int)
 /* 42 */ _CFFI_OP(_CFFI_OP_NOOP, 14),
 /* 43 */ _CFFI_OP(_CFFI_OP_NOOP, 14),
 /* 44 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
@@ -2305,7 +2322,7 @@ static void *_cffi_types[] = {
 /* 46 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 47 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 48 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 49 */ _CFFI_OP(_CFFI_OP_FUNCTION, 236), // void()(int *, int, unsigned int *, float, unsigned int *, unsigned int)
+/* 49 */ _CFFI_OP(_CFFI_OP_FUNCTION, 238), // void()(int *, int, unsigned int *, float, unsigned int *, unsigned int)
 /* 50 */ _CFFI_OP(_CFFI_OP_NOOP, 14),
 /* 51 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 52 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
@@ -2313,16 +2330,16 @@ static void *_cffi_types[] = {
 /* 54 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 55 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 8), // unsigned int
 /* 56 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 57 */ _CFFI_OP(_CFFI_OP_FUNCTION, 236), // void()(int, unsigned int *, unsigned int *, int)
+/* 57 */ _CFFI_OP(_CFFI_OP_FUNCTION, 238), // void()(int, unsigned int *, unsigned int *, int)
 /* 58 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 59 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 60 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 61 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 62 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 63 */ _CFFI_OP(_CFFI_OP_FUNCTION, 236), // void()(uint64_t)
+/* 63 */ _CFFI_OP(_CFFI_OP_FUNCTION, 238), // void()(uint64_t)
 /* 64 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 24), // uint64_t
 /* 65 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 66 */ _CFFI_OP(_CFFI_OP_FUNCTION, 236), // void()(unsigned int *, int, int, int, int, unsigned int *, unsigned int *)
+/* 66 */ _CFFI_OP(_CFFI_OP_FUNCTION, 238), // void()(unsigned int *, int, int, int, int, unsigned int *, unsigned int *)
 /* 67 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 68 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 69 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
@@ -2331,7 +2348,7 @@ static void *_cffi_types[] = {
 /* 72 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 73 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 74 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 75 */ _CFFI_OP(_CFFI_OP_FUNCTION, 236), // void()(unsigned int *, int, int, int, int, unsigned int *, unsigned int *, unsigned int *)
+/* 75 */ _CFFI_OP(_CFFI_OP_FUNCTION, 238), // void()(unsigned int *, int, int, int, int, unsigned int *, unsigned int *, unsigned int *)
 /* 76 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 77 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 78 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
@@ -2341,14 +2358,14 @@ static void *_cffi_types[] = {
 /* 82 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 83 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 84 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 85 */ _CFFI_OP(_CFFI_OP_FUNCTION, 236), // void()(unsigned int *, int, int, int, unsigned int *)
+/* 85 */ _CFFI_OP(_CFFI_OP_FUNCTION, 238), // void()(unsigned int *, int, int, int, unsigned int *)
 /* 86 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 87 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 88 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 89 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 90 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 91 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 92 */ _CFFI_OP(_CFFI_OP_FUNCTION, 236), // void()(unsigned int *, int, int, int, unsigned int *, unsigned int *)
+/* 92 */ _CFFI_OP(_CFFI_OP_FUNCTION, 238), // void()(unsigned int *, int, int, int, unsigned int *, unsigned int *)
 /* 93 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 94 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 95 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
@@ -2356,7 +2373,7 @@ static void *_cffi_types[] = {
 /* 97 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 98 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 99 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 100 */ _CFFI_OP(_CFFI_OP_FUNCTION, 236), // void()(unsigned int *, int, int, unsigned int *, unsigned short *, unsigned short *)
+/* 100 */ _CFFI_OP(_CFFI_OP_FUNCTION, 238), // void()(unsigned int *, int, int, unsigned int *, unsigned short *, unsigned short *)
 /* 101 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 102 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 103 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
@@ -2364,13 +2381,13 @@ static void *_cffi_types[] = {
 /* 105 */ _CFFI_OP(_CFFI_OP_NOOP, 20),
 /* 106 */ _CFFI_OP(_CFFI_OP_NOOP, 20),
 /* 107 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 108 */ _CFFI_OP(_CFFI_OP_FUNCTION, 236), // void()(unsigned int *, int, unsigned int *, int)
+/* 108 */ _CFFI_OP(_CFFI_OP_FUNCTION, 238), // void()(unsigned int *, int, unsigned int *, int)
 /* 109 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 110 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 111 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 112 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 113 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 114 */ _CFFI_OP(_CFFI_OP_FUNCTION, 236), // void()(unsigned int *, int, unsigned int *, unsigned int *, int, unsigned int *, unsigned int *, int, unsigned int *, unsigned int *, int, unsigned int *, int, int)
+/* 114 */ _CFFI_OP(_CFFI_OP_FUNCTION, 238), // void()(unsigned int *, int, unsigned int *, unsigned int *, int, unsigned int *, unsigned int *, int, unsigned int *, unsigned int *, int, unsigned int *, int, int, int, int)
 /* 115 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 116 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 117 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
@@ -2385,114 +2402,116 @@ static void *_cffi_types[] = {
 /* 126 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 127 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 128 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
-/* 129 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 130 */ _CFFI_OP(_CFFI_OP_FUNCTION, 236), // void()(unsigned int *, unsigned int *, int, int, int, int, float, unsigned int *, unsigned int *, unsigned int *)
-/* 131 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 132 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 133 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
-/* 134 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 129 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 130 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 131 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
+/* 132 */ _CFFI_OP(_CFFI_OP_FUNCTION, 238), // void()(unsigned int *, unsigned int *, int, int, int, int, float, unsigned int *, unsigned int *, unsigned int *)
+/* 133 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 134 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 135 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 136 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
-/* 137 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 13),
-/* 138 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 139 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 137 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 138 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 139 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 13),
 /* 140 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 141 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 142 */ _CFFI_OP(_CFFI_OP_FUNCTION, 236), // void()(unsigned int *, unsigned int *, int, int, int, int, int, int, int, int)
-/* 143 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 144 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 145 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
-/* 146 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 141 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 142 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 143 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
+/* 144 */ _CFFI_OP(_CFFI_OP_FUNCTION, 238), // void()(unsigned int *, unsigned int *, int, int, int, int, int, int, int, int)
+/* 145 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 146 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 147 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 148 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 149 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 150 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 151 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 152 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
-/* 153 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 154 */ _CFFI_OP(_CFFI_OP_FUNCTION, 236), // void()(unsigned int *, unsigned int *, int, int, unsigned int *, unsigned short *, unsigned short *)
-/* 155 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 156 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 157 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
-/* 158 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
-/* 159 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 160 */ _CFFI_OP(_CFFI_OP_NOOP, 20),
-/* 161 */ _CFFI_OP(_CFFI_OP_NOOP, 20),
-/* 162 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 163 */ _CFFI_OP(_CFFI_OP_FUNCTION, 236), // void()(unsigned int *, unsigned int *, unsigned int *, int, int, int, int, float, float, unsigned int, unsigned int, unsigned int, unsigned int *, unsigned int *, unsigned int *)
-/* 164 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 165 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 153 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 154 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 155 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
+/* 156 */ _CFFI_OP(_CFFI_OP_FUNCTION, 238), // void()(unsigned int *, unsigned int *, int, int, unsigned int *, unsigned short *, unsigned short *)
+/* 157 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 158 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 159 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 160 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 161 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 162 */ _CFFI_OP(_CFFI_OP_NOOP, 20),
+/* 163 */ _CFFI_OP(_CFFI_OP_NOOP, 20),
+/* 164 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
+/* 165 */ _CFFI_OP(_CFFI_OP_FUNCTION, 238), // void()(unsigned int *, unsigned int *, unsigned int *, int, int, int, int, float, float, unsigned int, unsigned int, unsigned int, unsigned int *, unsigned int *, unsigned int *)
 /* 166 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 167 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
-/* 168 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 167 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 168 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 169 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 170 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
-/* 171 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 13),
-/* 172 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 13),
-/* 173 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 8),
-/* 174 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 8),
+/* 171 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 172 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 173 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 13),
+/* 174 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 13),
 /* 175 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 8),
-/* 176 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 177 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 176 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 8),
+/* 177 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 8),
 /* 178 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 179 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 180 */ _CFFI_OP(_CFFI_OP_FUNCTION, 236), // void()(unsigned int *, unsigned int *, unsigned int *, int, int, int, unsigned int *, unsigned int *, unsigned int *, int)
-/* 181 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 182 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 179 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 180 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 181 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
+/* 182 */ _CFFI_OP(_CFFI_OP_FUNCTION, 238), // void()(unsigned int *, unsigned int *, unsigned int *, int, int, int, unsigned int *, unsigned int *, unsigned int *, int)
 /* 183 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 184 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
-/* 185 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 184 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 185 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 186 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
-/* 187 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 188 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 187 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 188 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 189 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 190 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
-/* 191 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 192 */ _CFFI_OP(_CFFI_OP_FUNCTION, 236), // void()(unsigned int *, unsigned int *, unsigned int *, int, int, unsigned int *, unsigned int *)
-/* 193 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 194 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 190 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 191 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 192 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 193 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
+/* 194 */ _CFFI_OP(_CFFI_OP_FUNCTION, 238), // void()(unsigned int *, unsigned int *, unsigned int *, int, int, unsigned int *, unsigned int *)
 /* 195 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 196 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
-/* 197 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
-/* 198 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 199 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 200 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 201 */ _CFFI_OP(_CFFI_OP_FUNCTION, 236), // void()(unsigned int *, unsigned int *, unsigned int *, unsigned int *, int, int, int, int, int, float, float, unsigned int *, unsigned int *, unsigned int *, unsigned int)
-/* 202 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 203 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 196 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 197 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 198 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 199 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 200 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 201 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 202 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
+/* 203 */ _CFFI_OP(_CFFI_OP_FUNCTION, 238), // void()(unsigned int *, unsigned int *, unsigned int *, unsigned int *, int, int, int, int, int, float, float, unsigned int *, unsigned int *, unsigned int *, unsigned int)
 /* 204 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 205 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 206 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
-/* 207 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 206 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 207 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 208 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 209 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
 /* 210 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
-/* 211 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 13),
-/* 212 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 13),
-/* 213 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 214 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 211 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 212 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 213 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 13),
+/* 214 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 13),
 /* 215 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 216 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 8),
-/* 217 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 218 */ _CFFI_OP(_CFFI_OP_FUNCTION, 236), // void()(unsigned int *, unsigned int *, unsigned int *, unsigned int *, int, int, int, unsigned int *)
-/* 219 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 220 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 216 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 217 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 218 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 8),
+/* 219 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
+/* 220 */ _CFFI_OP(_CFFI_OP_FUNCTION, 238), // void()(unsigned int *, unsigned int *, unsigned int *, unsigned int *, int, int, int, unsigned int *)
 /* 221 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 222 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 223 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
-/* 224 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 223 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 224 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
 /* 225 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
-/* 226 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 227 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 228 */ _CFFI_OP(_CFFI_OP_FUNCTION, 236), // void()(unsigned int const *, unsigned int, unsigned int, unsigned int, unsigned int *)
-/* 229 */ _CFFI_OP(_CFFI_OP_POINTER, 55), // unsigned int const *
-/* 230 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 8),
-/* 231 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 8),
+/* 226 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 227 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 7),
+/* 228 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 229 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
+/* 230 */ _CFFI_OP(_CFFI_OP_FUNCTION, 238), // void()(unsigned int const *, unsigned int, unsigned int, unsigned int, unsigned int *)
+/* 231 */ _CFFI_OP(_CFFI_OP_POINTER, 55), // unsigned int const *
 /* 232 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 8),
-/* 233 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
-/* 234 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
-/* 235 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 6), // unsigned short
-/* 236 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 0), // void
+/* 233 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 8),
+/* 234 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 8),
+/* 235 */ _CFFI_OP(_CFFI_OP_NOOP, 1),
+/* 236 */ _CFFI_OP(_CFFI_OP_FUNCTION_END, 0),
+/* 237 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 6), // unsigned short
+/* 238 */ _CFFI_OP(_CFFI_OP_PRIMITIVE, 0), // void
 };
 
 static void _cffi_d_cb_calculate_clause_outputs_incremental(unsigned int * x0, unsigned int * x1, unsigned int * x2, int x3, int x4, unsigned int * x5, unsigned int * x6)
@@ -3084,10 +3103,10 @@ _cffi_f_cb_get_literals(PyObject *self, PyObject *args)
     return NULL;
 
   datasize = _cffi_prepare_pointer_call_argument(
-      _cffi_type(229), arg0, (char **)&x0);
+      _cffi_type(231), arg0, (char **)&x0);
   if (datasize != 0) {
     x0 = ((size_t)datasize) <= 640 ? (unsigned int const *)alloca((size_t)datasize) : NULL;
-    if (_cffi_convert_array_argument(_cffi_type(229), arg0, (char **)&x0,
+    if (_cffi_convert_array_argument(_cffi_type(231), arg0, (char **)&x0,
             datasize, &large_args_free) < 0)
       return NULL;
   }
@@ -4762,9 +4781,9 @@ _cffi_f_tmu_encode(PyObject *self, PyObject *args)
 #  define _cffi_f_tmu_encode _cffi_d_tmu_encode
 #endif
 
-static void _cffi_d_tmu_produce_autoencoder_example(unsigned int * x0, int x1, unsigned int * x2, unsigned int * x3, int x4, unsigned int * x5, unsigned int * x6, int x7, unsigned int * x8, unsigned int * x9, int x10, unsigned int * x11, int x12, int x13)
+static void _cffi_d_tmu_produce_autoencoder_example(unsigned int * x0, int x1, unsigned int * x2, unsigned int * x3, int x4, unsigned int * x5, unsigned int * x6, int x7, unsigned int * x8, unsigned int * x9, int x10, unsigned int * x11, int x12, int x13, int x14, int x15)
 {
-  tmu_produce_autoencoder_example(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13);
+  tmu_produce_autoencoder_example(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15);
 }
 #ifndef PYPY_VERSION
 static PyObject *
@@ -4784,6 +4803,8 @@ _cffi_f_tmu_produce_autoencoder_example(PyObject *self, PyObject *args)
   unsigned int * x11;
   int x12;
   int x13;
+  int x14;
+  int x15;
   Py_ssize_t datasize;
   struct _cffi_freeme_s *large_args_free = NULL;
   PyObject *arg0;
@@ -4800,8 +4821,10 @@ _cffi_f_tmu_produce_autoencoder_example(PyObject *self, PyObject *args)
   PyObject *arg11;
   PyObject *arg12;
   PyObject *arg13;
+  PyObject *arg14;
+  PyObject *arg15;
 
-  if (!PyArg_UnpackTuple(args, "tmu_produce_autoencoder_example", 14, 14, &arg0, &arg1, &arg2, &arg3, &arg4, &arg5, &arg6, &arg7, &arg8, &arg9, &arg10, &arg11, &arg12, &arg13))
+  if (!PyArg_UnpackTuple(args, "tmu_produce_autoencoder_example", 16, 16, &arg0, &arg1, &arg2, &arg3, &arg4, &arg5, &arg6, &arg7, &arg8, &arg9, &arg10, &arg11, &arg12, &arg13, &arg14, &arg15))
     return NULL;
 
   datasize = _cffi_prepare_pointer_call_argument(
@@ -4900,9 +4923,17 @@ _cffi_f_tmu_produce_autoencoder_example(PyObject *self, PyObject *args)
   if (x13 == (int)-1 && PyErr_Occurred())
     return NULL;
 
+  x14 = _cffi_to_c_int(arg14, int);
+  if (x14 == (int)-1 && PyErr_Occurred())
+    return NULL;
+
+  x15 = _cffi_to_c_int(arg15, int);
+  if (x15 == (int)-1 && PyErr_Occurred())
+    return NULL;
+
   Py_BEGIN_ALLOW_THREADS
   _cffi_restore_errno();
-  { tmu_produce_autoencoder_example(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13); }
+  { tmu_produce_autoencoder_example(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15); }
   _cffi_save_errno();
   Py_END_ALLOW_THREADS
 
@@ -5104,22 +5135,22 @@ _cffi_f_xorshift128p_seed(PyObject *self, PyObject *arg0)
 #endif
 
 static const struct _cffi_global_s _cffi_globals[] = {
-  { "cb_calculate_clause_outputs_incremental", (void *)_cffi_f_cb_calculate_clause_outputs_incremental, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 192), (void *)_cffi_d_cb_calculate_clause_outputs_incremental },
-  { "cb_calculate_clause_outputs_incremental_batch", (void *)_cffi_f_cb_calculate_clause_outputs_incremental_batch, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 180), (void *)_cffi_d_cb_calculate_clause_outputs_incremental_batch },
+  { "cb_calculate_clause_outputs_incremental", (void *)_cffi_f_cb_calculate_clause_outputs_incremental, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 194), (void *)_cffi_d_cb_calculate_clause_outputs_incremental },
+  { "cb_calculate_clause_outputs_incremental_batch", (void *)_cffi_f_cb_calculate_clause_outputs_incremental_batch, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 182), (void *)_cffi_d_cb_calculate_clause_outputs_incremental_batch },
   { "cb_calculate_clause_outputs_patchwise", (void *)_cffi_f_cb_calculate_clause_outputs_patchwise, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 66), (void *)_cffi_d_cb_calculate_clause_outputs_patchwise },
   { "cb_calculate_clause_outputs_predict", (void *)_cffi_f_cb_calculate_clause_outputs_predict, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 66), (void *)_cffi_d_cb_calculate_clause_outputs_predict },
   { "cb_calculate_clause_outputs_update", (void *)_cffi_f_cb_calculate_clause_outputs_update, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 75), (void *)_cffi_d_cb_calculate_clause_outputs_update },
   { "cb_calculate_literal_frequency", (void *)_cffi_f_cb_calculate_literal_frequency, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 92), (void *)_cffi_d_cb_calculate_literal_frequency },
-  { "cb_get_literals", (void *)_cffi_f_cb_get_literals, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 228), (void *)_cffi_d_cb_get_literals },
+  { "cb_get_literals", (void *)_cffi_f_cb_get_literals, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 230), (void *)_cffi_d_cb_get_literals },
   { "cb_included_literals", (void *)_cffi_f_cb_included_literals, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 85), (void *)_cffi_d_cb_included_literals },
-  { "cb_initialize_incremental_clause_calculation", (void *)_cffi_f_cb_initialize_incremental_clause_calculation, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 218), (void *)_cffi_d_cb_initialize_incremental_clause_calculation },
+  { "cb_initialize_incremental_clause_calculation", (void *)_cffi_f_cb_initialize_incremental_clause_calculation, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 220), (void *)_cffi_d_cb_initialize_incremental_clause_calculation },
   { "cb_number_of_include_actions", (void *)_cffi_f_cb_number_of_include_actions, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 0), (void *)_cffi_d_cb_number_of_include_actions },
-  { "cb_type_i_feedback", (void *)_cffi_f_cb_type_i_feedback, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 163), (void *)_cffi_d_cb_type_i_feedback },
-  { "cb_type_ii_feedback", (void *)_cffi_f_cb_type_ii_feedback, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 130), (void *)_cffi_d_cb_type_ii_feedback },
-  { "cb_type_iii_feedback", (void *)_cffi_f_cb_type_iii_feedback, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 201), (void *)_cffi_d_cb_type_iii_feedback },
+  { "cb_type_i_feedback", (void *)_cffi_f_cb_type_i_feedback, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 165), (void *)_cffi_d_cb_type_i_feedback },
+  { "cb_type_ii_feedback", (void *)_cffi_f_cb_type_ii_feedback, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 132), (void *)_cffi_d_cb_type_ii_feedback },
+  { "cb_type_iii_feedback", (void *)_cffi_f_cb_type_iii_feedback, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 203), (void *)_cffi_d_cb_type_iii_feedback },
   { "cbs_calculate_clause_outputs_predict", (void *)_cffi_f_cbs_calculate_clause_outputs_predict, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 100), (void *)_cffi_d_cbs_calculate_clause_outputs_predict },
   { "cbs_calculate_clause_outputs_predict_packed_X", (void *)_cffi_f_cbs_calculate_clause_outputs_predict_packed_X, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 100), (void *)_cffi_d_cbs_calculate_clause_outputs_predict_packed_X },
-  { "cbs_calculate_clause_outputs_update", (void *)_cffi_f_cbs_calculate_clause_outputs_update, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 154), (void *)_cffi_d_cbs_calculate_clause_outputs_update },
+  { "cbs_calculate_clause_outputs_update", (void *)_cffi_f_cbs_calculate_clause_outputs_update, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 156), (void *)_cffi_d_cbs_calculate_clause_outputs_update },
   { "cbs_pack_X", (void *)_cffi_f_cbs_pack_X, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 41), (void *)_cffi_d_cbs_pack_X },
   { "cbs_prepare_Xi", (void *)_cffi_f_cbs_prepare_Xi, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 108), (void *)_cffi_d_cbs_prepare_Xi },
   { "cbs_restore_Xi", (void *)_cffi_f_cbs_restore_Xi, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 108), (void *)_cffi_d_cbs_restore_Xi },
@@ -5127,7 +5158,7 @@ static const struct _cffi_global_s _cffi_globals[] = {
   { "cbs_type_ii_feedback", (void *)_cffi_f_cbs_type_ii_feedback, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 27), (void *)_cffi_d_cbs_type_ii_feedback },
   { "cbs_unpack_clause_output", (void *)_cffi_f_cbs_unpack_clause_output, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 57), (void *)_cffi_d_cbs_unpack_clause_output },
   { "pcg32_seed", (void *)_cffi_f_pcg32_seed, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_O, 63), (void *)_cffi_d_pcg32_seed },
-  { "tmu_encode", (void *)_cffi_f_tmu_encode, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 142), (void *)_cffi_d_tmu_encode },
+  { "tmu_encode", (void *)_cffi_f_tmu_encode, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 144), (void *)_cffi_d_tmu_encode },
   { "tmu_produce_autoencoder_example", (void *)_cffi_f_tmu_produce_autoencoder_example, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 114), (void *)_cffi_d_tmu_produce_autoencoder_example },
   { "wb_decrement", (void *)_cffi_f_wb_decrement, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 49), (void *)_cffi_d_wb_decrement },
   { "wb_increment", (void *)_cffi_f_wb_increment, _CFFI_OP(_CFFI_OP_CPYTHON_BLTN_V, 49), (void *)_cffi_d_wb_increment },
@@ -5146,7 +5177,7 @@ static const struct _cffi_type_context_s _cffi_type_context = {
   0,  /* num_enums */
   0,  /* num_typenames */
   NULL,  /* no includes */
-  237,  /* num_types */
+  239,  /* num_types */
   0,  /* flags */
 };
 

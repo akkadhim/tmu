@@ -59,7 +59,7 @@ void tmu_produce_autoencoder_example(
 		unsigned int *data_col,
 		int categories,
 		int random_per_category,
-		int from_expert_index,
+		int expert_start_index,
 		int expert_size
 )
 {
@@ -158,7 +158,7 @@ void tmu_produce_autoencoder_example(
 					while (a < accumulation) {
 						int random_index = indptr_col[active_output[o]] + (rand() % (indptr_col[active_output[o]+1] - indptr_col[active_output[o]]));
 						row = indices_col[random_index];
-						if (row > from_expert_index && row <= (from_expert_index + expert_size)) {
+						if (row > expert_start_index && row < (expert_start_index + expert_size)) {
 							store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
 							a++;
 						}
