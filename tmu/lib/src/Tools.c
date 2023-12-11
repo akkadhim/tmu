@@ -117,15 +117,16 @@ void tmu_produce_autoencoder_example(
 		Y[o] = rand() % 2;
 	
 		if (Y[o]) {
-			int startIndex = indptr_col[active_output[o]];
-			int total_rows = (indptr_col[active_output[o]+1] - startIndex);
+			int start_index = indptr_col[active_output[o]];
+			int end_index = indptr_col[active_output[o]+1];
+			int total_rows = (end_index - start_index);
 			if (categories > 0 && total_rows >= accumulation)
 			{
 				IndexedValue *indexed_data = malloc(total_rows * sizeof(IndexedValue));
 
 				for (int i = 0; i < total_rows; i++) {
-					indexed_data[i].value = data_col[startIndex + i];
-					indexed_data[i].index = startIndex + i;
+					indexed_data[i].value = data_col[start_index + i];
+					indexed_data[i].index = start_index + i;
 				}
 
 				qsort(indexed_data, total_rows, sizeof(IndexedValue), compareIndexedValues);
@@ -153,15 +154,13 @@ void tmu_produce_autoencoder_example(
 			else
 			{
 				//if not equal the same dataset size then we have experts
-				if (expert_size != number_of_rows)
+				if (expert_size > 0)
 				{
 					int *expert_rows = (int *) malloc(expert_size * sizeof(int));
 					if (expert_rows == NULL) {
 						printf("Memory allocation failed.");
 						return 1;
 					}
-					int start_index = indptr_col[active_output[o]];
-					int end_index = indptr_col[active_output[o]+1];
 					int expert_rows_index = 0;
 					for (int i = start_index; i < end_index; i++) {
 						int target_row = indices_col[i];
@@ -170,9 +169,14 @@ void tmu_produce_autoencoder_example(
 							expert_rows_index++;
 						}
 					}
+					if (expert_rows_index == 0) {
+						printf("No valid target rows found.");
+						free(expert_rows);
+						return 1;
+					}
 					for (int a = 0; a < accumulation; ++a) {
 						int random_index = rand() % expert_rows_index;
-						row = indices_col[expert_rows[random_index]];
+						row = expert_rows[random_index];
 						store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
 					}
 					free(expert_rows);
@@ -180,7 +184,7 @@ void tmu_produce_autoencoder_example(
 				else{
 					for (int a = 0; a < accumulation; ++a) {
 						// Pick example randomly among positive examples
-						int random_index = indptr_col[active_output[o]] + (rand() % (indptr_col[active_output[o]+1] - indptr_col[active_output[o]]));
+						int random_index = start_index + (rand() % (end_index - start_index));
 						row = indices_col[random_index];
 						store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
 					}

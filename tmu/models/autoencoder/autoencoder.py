@@ -266,12 +266,16 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
         literal_active = self.activate_literals()
 
         class_index = np.arange(self.number_of_classes, dtype=np.uint32)
-
+    
         examples_per_expert = int(number_of_examples / len(involved_datasets))
         for expert in range(len(involved_datasets)):
-            expert_start_index = involved_datasets[expert][1]
-            expert_size=involved_datasets[expert][2]
-
+            if(len(involved_datasets) > 1):
+                expert_start_index = involved_datasets[expert][1]
+                expert_size=involved_datasets[expert][2]
+            else:
+                expert_start_index = 0
+                expert_size=0
+                
             for e in range(examples_per_expert):
                 self.rng.shuffle(class_index)
 
