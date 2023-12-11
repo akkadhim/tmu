@@ -1,0 +1,375 @@
+This loop for target word: 58033
+No categories.
+Experts enabled.
+Number of experts rows founded: 307
+will take document: 255 whcih is row number: 32696
+will take document: 176 whcih is row number: 27646
+will take document: 205 whcih is row number: 28813
+will take document: 296 whcih is row number: 35724
+will take document: 137 whcih is row number: 23922
+will take document: 215 whcih is row number: 29498
+will take document: 274 whcih is row number: 34095
+will take document: 274 whcih is row number: 34095
+will take document: 105 whcih is row number: 21258
+will take document: 281 whcih is row number: 34665
+will take document: 264 whcih is row number: 33148
+will take document: 81 whcih is row number: 19097
+will take document: 286 whcih is row number: 35111
+will take document: 278 whcih is row number: 34321
+will take document: 100 whcih is row number: 20560
+will take document: 294 whcih is row number: 35664
+will take document: 258 whcih is row number: 32808
+will take document: 108 whcih is row number: 21412
+will take document: 166 whcih is row number: 26666
+will take document: 34 whcih is row number: 14909
+will take document: 59 whcih is row number: 16887
+will take document: 124 whcih is row number: 22753
+will take document: 77 whcih is row number: 18954
+will take document: 3 whcih is row number: 11480
+This loop for target word: 27807
+No categories.
+Experts enabled.
+Number of experts rows founded: 865
+will take document: 653 whcih is row number: 29787
+will take document: 347 whcih is row number: 21255
+will take document: 736 whcih is row number: 32068
+will take document: 188 whcih is row number: 16606
+will take document: 128 whcih is row number: 15041
+will take document: 649 whcih is row number: 29747
+will take document: 526 whcih is row number: 26424
+will take document: 122 whcih is row number: 14832
+will take document: 180 whcih is row number: 16302
+will take document: 142 whcih is row number: 15345
+will take document: 413 whcih is row number: 23456
+will take document: 703 whcih is row number: 31281
+will take document: 235 whcih is row number: 17891
+will take document: 161 whcih is row number: 15956
+will take document: 42 whcih is row number: 12697
+will take document: 748 whcih is row number: 32342
+will take document: 331 whcih is row number: 20796
+will take document: 701 whcih is row number: 31160
+will take document: 695 whcih is row number: 30999
+will take document: 604 whcih is row number: 28625
+will take document: 507 whcih is row number: 25810
+will take document: 483 whcih is row number: 25228
+will take document: 625 whcih is row number: 29242
+will take document: 835 whcih is row number: 35387
+This loop for target word: 58192
+This loop for target word: 16386
+This loop for target word: 30664
+No categories.
+Experts enabled.
+Number of experts rows founded: 875
+will take document: 361 whcih is row number: 21351
+will take document: 696 whcih is row number: 31366
+will take document: 690 whcih is row number: 31187
+will take document: 501 whcih is row number: 25922
+will take document: 112 whcih is row number: 14136
+will take document: 211 whcih is row number: 16750
+will take document: 744 whcih is row number: 32882
+will take document: 824 whcih is row number: 34859
+will take document: 28 whcih is row number: 12041
+will take document: 486 whcih is row number: 25573
+will take document: 142 whcih is row number: 14921
+will take document: 50 whcih is row number: 12543
+will take document: 119 whcih is row number: 14337
+will take document: 189 whcih is row number: 16340
+will take document: 740 whcih is row number: 32729
+will take document: 10 whcih is row number: 11435
+will take document: 416 whcih is row number: 23415
+will take document: 36 whcih is row number: 12246
+will take document: 354 whcih is row number: 21134
+will take document: 804 whcih is row number: 34446
+will take document: 748 whcih is row number: 32948
+will take document: 429 whcih is row number: 23791
+will take document: 730 whcih is row number: 32458
+will take document: 129 whcih is row number: 14674
+This loop for target word: 89376
+This loop for target word: 24369
+This loop for target word: 38877
+This loop for target word: 87454
+No categories.
+Experts enabled.
+Number of experts rows founded: 621
+will take document: 400 whcih is row number: 28500
+will take document: 187 whcih is row number: 19522
+will take document: 510 whcih is row number: 32511
+will take document: 84 whcih is row number: 14894
+will take document: 192 whcih is row number: 19760
+will take document: 137 whcih is row number: 16958
+will take document: 81 whcih is row number: 14845
+will take document: 380 whcih is row number: 27912
+will take document: 564 whcih is row number: 34191
+will take document: 546 whcih is row number: 33512
+will take document: 329 whcih is row number: 25955
+will take document: 503 whcih is row number: 32315
+will take document: 479 whcih is row number: 31621
+will take document: 314 whcih is row number: 25330
+will take document: 295 whcih is row number: 24640
+will take document: 167 whcih is row number: 18624
+will take document: 555 whcih is row number: 33751
+will take document: 267 whcih is row number: 23353
+will take document: 136 whcih is row number: 16953
+will take document: 588 whcih is row number: 35108
+will take document: 96 whcih is row number: 15335
+will take document: 83 whcih is row number: 14866
+will take document: 414 whcih is row number: 28963
+will take document: 508 whcih is row number: 32482
+This loop for target word: 59865
+No categories.
+Experts enabled.
+Number of experts rows founded: 243
+will take document: 197 whcih is row number: 32198
+will take document: 62 whcih is row number: 17691
+will take document: 99 whcih is row number: 21722
+will take document: 181 whcih is row number: 31083
+will take document: 86 whcih is row number: 20307
+will take document: 192 whcih is row number: 31848
+will take document: 97 whcih is row number: 21386
+will take document: 62 whcih is row number: 17691
+will take document: 231 whcih is row number: 35236
+will take document: 21 whcih is row number: 13480
+will take document: 87 whcih is row number: 20548
+will take document: 18 whcih is row number: 13438
+will take document: 157 whcih is row number: 27846
+will take document: 114 whcih is row number: 23443
+will take document: 63 whcih is row number: 17795
+will take document: 8 whcih is row number: 12116
+will take document: 125 whcih is row number: 24762
+will take document: 135 whcih is row number: 25597
+will take document: 185 whcih is row number: 31528
+will take document: 209 whcih is row number: 32876
+will take document: 26 whcih is row number: 13944
+will take document: 91 whcih is row number: 20748
+will take document: 179 whcih is row number: 30785
+will take document: 24 whcih is row number: 13767
+This loop for target word: 60512
+This loop for target word: 91449
+No categories.
+Experts enabled.
+Number of experts rows founded: 131
+will take document: 52 whcih is row number: 20851
+will take document: 114 whcih is row number: 33197
+will take document: 59 whcih is row number: 22307
+will take document: 120 whcih is row number: 34144
+will take document: 54 whcih is row number: 21301
+will take document: 36 whcih is row number: 18084
+will take document: 128 whcih is row number: 35331
+will take document: 33 whcih is row number: 17408
+will take document: 107 whcih is row number: 30245
+will take document: 35 whcih is row number: 17809
+will take document: 17 whcih is row number: 14274
+will take document: 8 whcih is row number: 12377
+will take document: 98 whcih is row number: 29381
+will take document: 17 whcih is row number: 14274
+will take document: 28 whcih is row number: 15943
+will take document: 8 whcih is row number: 12377
+will take document: 16 whcih is row number: 14228
+will take document: 114 whcih is row number: 33197
+will take document: 21 whcih is row number: 14990
+will take document: 19 whcih is row number: 14331
+will take document: 126 whcih is row number: 35238
+will take document: 21 whcih is row number: 14990
+will take document: 25 whcih is row number: 15750
+will take document: 47 whcih is row number: 19156
+This loop for target word: 72593
+No categories.
+Experts enabled.
+Number of experts rows founded: 222
+will take document: 206 whcih is row number: 34775
+will take document: 115 whcih is row number: 23626
+will take document: 190 whcih is row number: 33348
+will take document: 187 whcih is row number: 32932
+will take document: 67 whcih is row number: 19492
+will take document: 7 whcih is row number: 12216
+will take document: 164 whcih is row number: 30471
+will take document: 2 whcih is row number: 11756
+will take document: 154 whcih is row number: 29321
+will take document: 79 whcih is row number: 21068
+will take document: 149 whcih is row number: 28064
+will take document: 17 whcih is row number: 13935
+will take document: 65 whcih is row number: 19379
+will take document: 26 whcih is row number: 14749
+will take document: 54 whcih is row number: 17882
+will take document: 86 whcih is row number: 21642
+will take document: 187 whcih is row number: 32932
+will take document: 166 whcih is row number: 30606
+will take document: 125 whcih is row number: 24880
+will take document: 111 whcih is row number: 23457
+will take document: 11 whcih is row number: 13270
+will take document: 169 whcih is row number: 30850
+will take document: 216 whcih is row number: 35600
+will take document: 185 whcih is row number: 32595
+This loop for target word: 25969
+This loop for target word: 26126
+This loop for target word: 64027
+This loop for target word: 81696
+This loop for target word: 42129
+No categories.
+Experts enabled.
+Number of experts rows founded: 187
+will take document: 45 whcih is row number: 17873
+will take document: 110 whcih is row number: 27156
+will take document: 15 whcih is row number: 13946
+will take document: 5 whcih is row number: 12745
+will take document: 81 whcih is row number: 22575
+will take document: 133 whcih is row number: 30658
+will take document: 52 whcih is row number: 18986
+will take document: 37 whcih is row number: 16598
+will take document: 136 whcih is row number: 31004
+will take document: 65 whcih is row number: 20255
+will take document: 14 whcih is row number: 13767
+will take document: 55 whcih is row number: 19248
+will take document: 145 whcih is row number: 31892
+will take document: 18 whcih is row number: 14162
+will take document: 156 whcih is row number: 33228
+will take document: 167 whcih is row number: 34646
+will take document: 169 whcih is row number: 34731
+will take document: 166 whcih is row number: 34483
+will take document: 33 whcih is row number: 15877
+will take document: 1 whcih is row number: 11428
+will take document: 159 whcih is row number: 33561
+will take document: 166 whcih is row number: 34483
+will take document: 20 whcih is row number: 14371
+will take document: 98 whcih is row number: 24921
+This loop for target word: 89384
+No categories.
+Experts enabled.
+Number of experts rows founded: 129
+will take document: 105 whcih is row number: 30929
+will take document: 32 whcih is row number: 17080
+will take document: 13 whcih is row number: 13501
+will take document: 114 whcih is row number: 32126
+will take document: 111 whcih is row number: 31570
+will take document: 122 whcih is row number: 34483
+will take document: 118 whcih is row number: 33046
+will take document: 79 whcih is row number: 25272
+will take document: 111 whcih is row number: 31570
+will take document: 64 whcih is row number: 22175
+will take document: 22 whcih is row number: 14679
+will take document: 33 whcih is row number: 17138
+will take document: 124 whcih is row number: 34976
+will take document: 21 whcih is row number: 14168
+will take document: 128 whcih is row number: 36142
+will take document: 122 whcih is row number: 34483
+will take document: 52 whcih is row number: 20007
+will take document: 51 whcih is row number: 19849
+will take document: 81 whcih is row number: 25359
+will take document: 31 whcih is row number: 17020
+will take document: 87 whcih is row number: 27117
+will take document: 3 whcih is row number: 11748
+will take document: 81 whcih is row number: 25359
+will take document: 28 whcih is row number: 16306
+This loop for target word: 47898
+No categories.
+Experts enabled.
+Number of experts rows founded: 89
+will take document: 53 whcih is row number: 25846
+will take document: 71 whcih is row number: 31497
+will take document: 62 whcih is row number: 29672
+will take document: 11 whcih is row number: 14937
+will take document: 50 whcih is row number: 25686
+will take document: 82 whcih is row number: 34348
+will take document: 16 whcih is row number: 15466
+will take document: 12 whcih is row number: 14968
+will take document: 26 whcih is row number: 18711
+will take document: 54 whcih is row number: 27373
+will take document: 21 whcih is row number: 17172
+will take document: 34 whcih is row number: 20717
+will take document: 52 whcih is row number: 25840
+will take document: 51 whcih is row number: 25776
+will take document: 20 whcih is row number: 16912
+will take document: 87 whcih is row number: 36110
+will take document: 54 whcih is row number: 27373
+will take document: 81 whcih is row number: 34303
+will take document: 13 whcih is row number: 15139
+will take document: 56 whcih is row number: 28470
+will take document: 42 whcih is row number: 23563
+will take document: 71 whcih is row number: 31497
+will take document: 64 whcih is row number: 30402
+will take document: 71 whcih is row number: 31497
+This loop for target word: 42444
+No categories.
+Experts enabled.
+Number of experts rows founded: 3130
+will take document: 313 whcih is row number: 13837
+will take document: 2023 whcih is row number: 27201
+will take document: 1042 whcih is row number: 19589
+will take document: 801 whcih is row number: 17500
+will take document: 2205 whcih is row number: 28803
+will take document: 2670 whcih is row number: 32841
+will take document: 907 whcih is row number: 18412
+will take document: 778 whcih is row number: 17301
+will take document: 926 whcih is row number: 18629
+will take document: 2210 whcih is row number: 28851
+will take document: 2817 whcih is row number: 34086
+will take document: 590 whcih is row number: 15805
+will take document: 527 whcih is row number: 15271
+will take document: 372 whcih is row number: 14350
+will take document: 960 whcih is row number: 18965
+will take document: 2693 whcih is row number: 33065
+will take document: 3036 whcih is row number: 35725
+will take document: 409 whcih is row number: 14562
+will take document: 2705 whcih is row number: 33175
+will take document: 3081 whcih is row number: 36023
+will take document: 60 whcih is row number: 11810
+will take document: 2484 whcih is row number: 31184
+will take document: 3109 whcih is row number: 36190
+will take document: 1722 whcih is row number: 24852
+This loop for target word: 28794
+No categories.
+Experts enabled.
+Number of experts rows founded: 713
+will take document: 388 whcih is row number: 25754
+will take document: 368 whcih is row number: 24901
+will take document: 665 whcih is row number: 34837
+will take document: 528 whcih is row number: 30135
+will take document: 380 whcih is row number: 25407
+will take document: 118 whcih is row number: 15635
+will take document: 159 whcih is row number: 17165
+will take document: 405 whcih is row number: 26274
+will take document: 625 whcih is row number: 33596
+will take document: 340 whcih is row number: 24128
+will take document: 85 whcih is row number: 14405
+will take document: 263 whcih is row number: 20806
+will take document: 294 whcih is row number: 22124
+will take document: 178 whcih is row number: 17666
+will take document: 392 whcih is row number: 25916
+will take document: 189 whcih is row number: 18222
+will take document: 591 whcih is row number: 32256
+will take document: 516 whcih is row number: 29738
+will take document: 536 whcih is row number: 30432
+will take document: 340 whcih is row number: 24128
+will take document: 673 whcih is row number: 35143
+will take document: 413 whcih is row number: 26680
+will take document: 437 whcih is row number: 27586
+will take document: 518 whcih is row number: 29772
+This loop for target word: 47237
+No categories.
+Experts enabled.
+Number of experts rows founded: 885
+will take document: 674 whcih is row number: 30188
+will take document: 373 whcih is row number: 21704
+will take document: 524 whcih is row number: 26078
+will take document: 30 whcih is row number: 12246
+will take document: 723 whcih is row number: 31890
+will take document: 512 whcih is row number: 25695
+will take document: 106 whcih is row number: 14352
+will take document: 204 whcih is row number: 17254
+will take document: 745 whcih is row number: 32450
+will take document: 397 whcih is row number: 22220
+will take document: 875 whcih is row number: 35847
+will take document: 681 whcih is row number: 30541
+will take document: 641 whcih is row number: 29262
+will take document: 91 whcih is row number: 13923
+will take document: 652 whcih is row number: 29536
+will take document: 413 whcih is row number: 22535
+will take document: 731 whcih is row number: 32092
+will take document: 687 whcih is row number: 30854
+will take document: 445 whcih is row number: 23962
+will take document: 813 whcih is row number: 34273
+will take document: 333 whcih is row number: 20530
+will take document: 790 whcih is row number: 33791
+will take document: 723 whcih is row number: 31890
+will take document: 144 whcih is row number: 15466
+This loop for target word: 98138

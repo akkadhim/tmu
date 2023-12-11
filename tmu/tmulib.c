@@ -1487,6 +1487,8 @@ void tmu_produce_autoencoder_example(
 	int number_of_literals = 2*number_of_features;
 	unsigned int number_of_literal_chunks = (number_of_literals-1)/32 + 1;
 
+	FILE* file = fopen("result/output.txt", "w");
+	
 	//int number_of_literals = 2*number_of_cols;
 	//int number_of_literal_chunks= (((number_of_literals-1)/32 + 1));
 	
@@ -1494,7 +1496,8 @@ void tmu_produce_autoencoder_example(
 	// Loop over active outputs, producing one example per output
 	for (int o = 0; o < number_of_active_outputs; ++o) {
 		int output_pos = o*number_of_literal_chunks;
-
+		fprintf(file, "This loop for target word: %d\n", active_output[o]);
+		
 		// Initialize example with false features
 		int	number_of_feature_chunks = (((number_of_literals-1)/32 + 1));
 		for (int k = 0; k < number_of_feature_chunks - 1; ++k) {
@@ -1536,6 +1539,7 @@ void tmu_produce_autoencoder_example(
 			int start_index = indptr_col[active_output[o]];
 			int end_index = indptr_col[active_output[o]+1];
 			int total_rows = (end_index - start_index);
+
 			if (categories > 0 && total_rows >= accumulation)
 			{
 				IndexedValue *indexed_data = malloc(total_rows * sizeof(IndexedValue));
@@ -1569,13 +1573,20 @@ void tmu_produce_autoencoder_example(
 			}
 			else
 			{
-				//if not equal the same dataset size then we have experts
+				if (file != NULL) {
+					fprintf(file, "No categories.\n");
+				}
 				if (expert_size > 0)
 				{
+					if (file != NULL) {
+						fprintf(file, "Experts enabled.\n");
+					}
 					int *expert_rows = (int *) malloc(expert_size * sizeof(int));
 					if (expert_rows == NULL) {
-						printf("Memory allocation failed.");
-						return 1;
+						if (file != NULL) {
+							fprintf(file, "Memory allocation failed.\n");
+						}
+						return;
 					}
 					int expert_rows_index = 0;
 					for (int i = start_index; i < end_index; i++) {
@@ -1585,14 +1596,20 @@ void tmu_produce_autoencoder_example(
 							expert_rows_index++;
 						}
 					}
+					if (file != NULL) {
+						fprintf(file, "Number of experts rows founded: %d\n", expert_rows_index);
+					}
 					if (expert_rows_index == 0) {
-						printf("No valid target rows found.");
+						if (file != NULL) {
+							fprintf(file, "No valid target rows found.\n");
+						}
 						free(expert_rows);
-						return 1;
+						return;
 					}
 					for (int a = 0; a < accumulation; ++a) {
 						int random_index = rand() % expert_rows_index;
 						row = expert_rows[random_index];
+						fprintf(file, "will take document: %d whcih is row number: %d\n", random_index,row);
 						store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
 					}
 					free(expert_rows);
@@ -1619,6 +1636,7 @@ void tmu_produce_autoencoder_example(
 			}
 		}
 	}
+	fclose(file);
 }
 
 void store_to_X(int row, int output_pos, unsigned int *indptr_row, unsigned int *indices_row, int number_of_cols, unsigned int *X){

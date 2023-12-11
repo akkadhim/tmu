@@ -401,8 +401,7 @@ class ClauseBank(BaseClauseBank):
         ):
         X = np.ascontiguousarray(np.empty(int(self.number_of_ta_chunks * active_output.shape[0]), dtype=np.uint32))
         Y = np.ascontiguousarray(np.empty(int(active_output.shape[0]), dtype=np.uint32))
-        print(expert_size)
-        print(int(X_csr.shape[0]))
+        
         lib.tmu_produce_autoencoder_example(ffi.cast("unsigned int *", active_output.ctypes.data), 
                                             active_output.shape[0],
                                             ffi.cast("unsigned int *", np.ascontiguousarray(X_csr.indptr).ctypes.data),
