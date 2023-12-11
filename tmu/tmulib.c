@@ -1568,17 +1568,30 @@ void tmu_produce_autoencoder_example(
 			}
 			else
 			{
-				if (expert_size > 0)
+				//if not equal the same dataset size then we have experts
+				if (expert_size != number_of_rows)
 				{
-					int a = 0;
-					while (a < accumulation) {
-						int random_index = indptr_col[active_output[o]] + (rand() % (indptr_col[active_output[o]+1] - indptr_col[active_output[o]]));
-						row = indices_col[random_index];
-						if (row > expert_start_index && row < (expert_start_index + expert_size)) {
-							store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
-							a++;
+					int *expert_rows = (int *) malloc(expert_size * sizeof(int));
+					if (expert_rows == NULL) {
+						printf("Memory allocation failed.");
+						return 1;
+					}
+					int start_index = indptr_col[active_output[o]];
+					int end_index = indptr_col[active_output[o]+1];
+					int expert_rows_index = 0;
+					for (int i = start_index; i < end_index; i++) {
+						int target_row = indices_col[i];
+						if (target_row >= expert_start_index && target_row < (expert_start_index + expert_size)) {
+							expert_rows[expert_rows_index] = target_row;
+							expert_rows_index++;
 						}
 					}
+					for (int a = 0; a < accumulation; ++a) {
+						int random_index = rand() % expert_rows_index;
+						row = indices_col[expert_rows[random_index]];
+						store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
+					}
+					free(expert_rows);
 				}
 				else{
 					for (int a = 0; a < accumulation; ++a) {
