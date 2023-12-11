@@ -139,4 +139,3 @@ cmake-build-debug
 cmake-build-release
 examples/autoencoder/jupyter/bbc/
 
-tmu/tmulib.c
