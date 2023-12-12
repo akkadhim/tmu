@@ -138,5 +138,4 @@ Release/
 cmake-build-debug
 cmake-build-release
 examples/autoencoder/jupyter/bbc/
-
-examples/autoencoder/jupyter/result/output.txt
+examples/autoencoder/jupyter/result/
