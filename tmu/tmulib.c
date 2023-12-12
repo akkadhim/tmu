@@ -1487,7 +1487,8 @@ void tmu_produce_autoencoder_example(
 	int number_of_literals = 2*number_of_features;
 	unsigned int number_of_literal_chunks = (number_of_literals-1)/32 + 1;
 
-	FILE* file = fopen("result/output.txt", "w");
+	FILE* file = fopen("result/output.txt", "a");
+	fprintf(file, "\nStart new example with expert_start_index = %d, and expert_size = %d\n",expert_start_index,expert_size);
 	
 	//int number_of_literals = 2*number_of_cols;
 	//int number_of_literal_chunks= (((number_of_literals-1)/32 + 1));
@@ -1497,7 +1498,7 @@ void tmu_produce_autoencoder_example(
 	for (int o = 0; o < number_of_active_outputs; ++o) {
 		int output_pos = o*number_of_literal_chunks;
 		fprintf(file, "This loop for target word: %d\n", active_output[o]);
-		
+
 		// Initialize example with false features
 		int	number_of_feature_chunks = (((number_of_literals-1)/32 + 1));
 		for (int k = 0; k < number_of_feature_chunks - 1; ++k) {
@@ -1574,13 +1575,10 @@ void tmu_produce_autoencoder_example(
 			else
 			{
 				if (file != NULL) {
-					fprintf(file, "No categories.\n");
+					fprintf(file, "No Categories and Experts enabled.\n");
 				}
 				if (expert_size > 0)
 				{
-					if (file != NULL) {
-						fprintf(file, "Experts enabled.\n");
-					}
 					int *expert_rows = (int *) malloc(expert_size * sizeof(int));
 					if (expert_rows == NULL) {
 						if (file != NULL) {
@@ -1588,6 +1586,7 @@ void tmu_produce_autoencoder_example(
 						}
 						return;
 					}
+					//counter for document within particular expert
 					int expert_rows_index = 0;
 					for (int i = start_index; i < end_index; i++) {
 						int target_row = indices_col[i];
