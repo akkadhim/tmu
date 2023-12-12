@@ -1476,7 +1476,7 @@ void tmu_produce_autoencoder_example(
 		int categories,
 		int random_per_category,
 		int expert_start_index,
-		int expert_size
+		int expert_end_index
 )
 {
 	void store_to_X(int row, int output_pos, unsigned int *indptr_row, unsigned int *indices_row, int number_of_cols, unsigned int *X);
@@ -1488,154 +1488,152 @@ void tmu_produce_autoencoder_example(
 	unsigned int number_of_literal_chunks = (number_of_literals-1)/32 + 1;
 
 	FILE* file = fopen("result/output.txt", "a");
-	fprintf(file, "\nStart new example with expert_start_index = %d, and expert_size = %d\n",expert_start_index,expert_size);
-	
-	//int number_of_literals = 2*number_of_cols;
-	//int number_of_literal_chunks= (((number_of_literals-1)/32 + 1));
-	
-
-	// Loop over active outputs, producing one example per output
-	for (int o = 0; o < number_of_active_outputs; ++o) {
-		int output_pos = o*number_of_literal_chunks;
-		fprintf(file, "This loop for target word: %d\n", active_output[o]);
-
-		// Initialize example with false features
-		int	number_of_feature_chunks = (((number_of_literals-1)/32 + 1));
-		for (int k = 0; k < number_of_feature_chunks - 1; ++k) {
-			X[output_pos + k] = 0U;
-		}
-
-		for (int k = number_of_feature_chunks - 1; k < number_of_literal_chunks; ++k) {
-			X[output_pos + k] = ~0U;
-		}
-
-		for (int k = (number_of_feature_chunks-1)*32; k < number_of_cols; ++k) {
-			int chunk_nr = k / 32;
-			int chunk_pos = k % 32;
-			X[output_pos + chunk_nr] &= ~(1U << chunk_pos);
-		}
-
-		if ((indptr_col[active_output[o]+1] - indptr_col[active_output[o]] == 0) || (indptr_col[active_output[o]+1] - indptr_col[active_output[o]] == number_of_rows)) {
-			// If no positive/negative examples, produce a random example
-			for (int a = 0; a < accumulation; ++a) {
-				row = generate_random(number_of_rows);
-				store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
-			}
-		}
-
-		if (indptr_col[active_output[o]+1] - indptr_col[active_output[o]] == 0) {
-			// If no positive examples, produce a negative output value
-			Y[o] = 0;
-			continue;
-		} else if (indptr_col[active_output[o]+1] - indptr_col[active_output[o]] == number_of_rows) {
-			// If no negative examples, produce a positive output value
-			Y[o] = 1;
-			continue;
-		} 
+	if (file != NULL) {
+		fprintf(file, "\nStart new example with expert_start_index = %d, and expert_end_index = %d\n",expert_start_index,expert_end_index);
 		
-		// Randomly select either positive or negative example
-		Y[o] = rand() % 2;
-	
-		if (Y[o]) {
-			int start_index = indptr_col[active_output[o]];
-			int end_index = indptr_col[active_output[o]+1];
-			int total_rows = (end_index - start_index);
+		//int number_of_literals = 2*number_of_cols;
+		//int number_of_literal_chunks= (((number_of_literals-1)/32 + 1));
+		
 
-			if (categories > 0 && total_rows >= accumulation)
-			{
-				IndexedValue *indexed_data = malloc(total_rows * sizeof(IndexedValue));
+		// Loop over active outputs, producing one example per output
+		for (int o = 0; o < number_of_active_outputs; ++o) {
+			int output_pos = o*number_of_literal_chunks;
+			fprintf(file, "This loop for target word: %d\n", active_output[o]);
 
-				for (int i = 0; i < total_rows; i++) {
-					indexed_data[i].value = data_col[start_index + i];
-					indexed_data[i].index = start_index + i;
+			// Initialize example with false features
+			int	number_of_feature_chunks = (((number_of_literals-1)/32 + 1));
+			for (int k = 0; k < number_of_feature_chunks - 1; ++k) {
+				X[output_pos + k] = 0U;
+			}
+
+			for (int k = number_of_feature_chunks - 1; k < number_of_literal_chunks; ++k) {
+				X[output_pos + k] = ~0U;
+			}
+
+			for (int k = (number_of_feature_chunks-1)*32; k < number_of_cols; ++k) {
+				int chunk_nr = k / 32;
+				int chunk_pos = k % 32;
+				X[output_pos + chunk_nr] &= ~(1U << chunk_pos);
+			}
+
+			if ((indptr_col[active_output[o]+1] - indptr_col[active_output[o]] == 0) || (indptr_col[active_output[o]+1] - indptr_col[active_output[o]] == number_of_rows)) {
+				// If no positive/negative examples, produce a random example
+				for (int a = 0; a < accumulation; ++a) {
+					row = generate_random(number_of_rows);
+					store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
 				}
+			}
 
-				qsort(indexed_data, total_rows, sizeof(IndexedValue), compareIndexedValues);
+			if (indptr_col[active_output[o]+1] - indptr_col[active_output[o]] == 0) {
+				// If no positive examples, produce a negative output value
+				Y[o] = 0;
+				continue;
+			} else if (indptr_col[active_output[o]+1] - indptr_col[active_output[o]] == number_of_rows) {
+				// If no negative examples, produce a positive output value
+				Y[o] = 1;
+				continue;
+			} 
+			
+			// Randomly select either positive or negative example
+			Y[o] = rand() % 2;
+		
+			if (Y[o]) {
+				int start_index = indptr_col[active_output[o]];
+				int end_index = indptr_col[active_output[o]+1];
+				int total_rows = (end_index - start_index);
 
-				int size_per_category = accumulation / categories;
-				int category_start_index = 0;
-				for (int category = 1; category <= categories; category++) {
-					for (int a = 0; a < size_per_category; ++a) {
-						if (random_per_category)
-						{
-							//pick one by one without rondomize inside each category
-							int random_index_data = category_start_index + (rand() % size_per_category);
-							int random_index = indexed_data[random_index_data].index;
-							row = indices_col[random_index];	
+				if (categories > 0 && total_rows >= accumulation)
+				{
+					IndexedValue *indexed_data = malloc(total_rows * sizeof(IndexedValue));
+
+					for (int i = 0; i < total_rows; i++) {
+						indexed_data[i].value = data_col[start_index + i];
+						indexed_data[i].index = start_index + i;
+					}
+
+					qsort(indexed_data, total_rows, sizeof(IndexedValue), compareIndexedValues);
+
+					int size_per_category = accumulation / categories;
+					int category_start_index = 0;
+					for (int category = 1; category <= categories; category++) {
+						for (int a = 0; a < size_per_category; ++a) {
+							if (random_per_category)
+							{
+								//pick one by one without rondomize inside each category
+								int random_index_data = category_start_index + (rand() % size_per_category);
+								int random_index = indexed_data[random_index_data].index;
+								row = indices_col[random_index];	
+							}
+							else{
+								row = indices_col[indexed_data[a + category_start_index].index];
+							}
+							store_to_X(row,output_pos,indptr_row,indices_row,number_of_features,X);
+						}
+						category_start_index = category_start_index + size_per_category;
+					}			
+					free(indexed_data);
+				}
+				else
+				{
+					fprintf(file, "No Categories and Experts enabled.\n");
+					int expert_size = expert_end_index - expert_start_index;
+					if (expert_size > 0)
+					{
+						int *expert_rows = (int *) malloc(expert_size * sizeof(int));
+						if (expert_rows == NULL) {
+							fprintf(file, "Memory allocation failed.\n");
+							return;
+						}
+						//counter for document within particular expert
+						int expert_rows_index = 0;
+						for (int i = start_index; i < end_index; i++) {
+							int target_row = indices_col[i];
+							if (target_row >= expert_start_index && target_row < expert_end_index) {
+								expert_rows[expert_rows_index] = target_row;
+								expert_rows_index++;
+							}
+						}
+						if (expert_rows_index == 0) {
+							fprintf(file, "No valid target rows found.\n");
+							free(expert_rows);
+							fclose(file);
+							return;
 						}
 						else{
-							row = indices_col[indexed_data[a + category_start_index].index];
+							fprintf(file, "Number of experts rows founded: %d\n", expert_rows_index);
 						}
-						store_to_X(row,output_pos,indptr_row,indices_row,number_of_features,X);
-					}
-					category_start_index = category_start_index + size_per_category;
-				}			
-				free(indexed_data);
-			}
-			else
-			{
-				if (file != NULL) {
-					fprintf(file, "No Categories and Experts enabled.\n");
-				}
-				if (expert_size > 0)
-				{
-					int *expert_rows = (int *) malloc(expert_size * sizeof(int));
-					if (expert_rows == NULL) {
-						if (file != NULL) {
-							fprintf(file, "Memory allocation failed.\n");
-						}
-						return;
-					}
-					//counter for document within particular expert
-					int expert_rows_index = 0;
-					for (int i = start_index; i < end_index; i++) {
-						int target_row = indices_col[i];
-						if (target_row >= expert_start_index && target_row < (expert_start_index + expert_size)) {
-							expert_rows[expert_rows_index] = target_row;
-							expert_rows_index++;
-						}
-					}
-					if (file != NULL) {
-						fprintf(file, "Number of experts rows founded: %d\n", expert_rows_index);
-					}
-					if (expert_rows_index == 0) {
-						if (file != NULL) {
-							fprintf(file, "No valid target rows found.\n");
+						for (int a = 0; a < accumulation; ++a) {
+							int random_index = rand() % expert_rows_index;
+							row = expert_rows[random_index];
+							fprintf(file, "will take document %d from my expert_rows whcih is row number %d in X_train\n", random_index,row);
+							store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
 						}
 						free(expert_rows);
-						return;
 					}
-					for (int a = 0; a < accumulation; ++a) {
-						int random_index = rand() % expert_rows_index;
-						row = expert_rows[random_index];
-						fprintf(file, "will take document: %d whcih is row number: %d\n", random_index,row);
-						store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
+					else{
+						for (int a = 0; a < accumulation; ++a) {
+							// Pick example randomly among positive examples
+							int random_index = start_index + (rand() % (end_index - start_index));
+							row = indices_col[random_index];
+							store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
+						}
+						
 					}
-					free(expert_rows);
 				}
-				else{
-					for (int a = 0; a < accumulation; ++a) {
-						// Pick example randomly among positive examples
-						int random_index = start_index + (rand() % (end_index - start_index));
-						row = indices_col[random_index];
-						store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
-					}
-					
-				}
-			}
-		} else {
-			int a = 0;
-			while (a < accumulation) {
-				row = rand() % number_of_rows;
+			} else {
+				int a = 0;
+				while (a < accumulation) {
+					row = rand() % number_of_rows;
 
-				if (bsearch(&row, &indices_col[indptr_col[active_output[o]]], indptr_col[active_output[o]+1] - indptr_col[active_output[o]], sizeof(unsigned int), compareints) == NULL) {
-					store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
-					a++;
+					if (bsearch(&row, &indices_col[indptr_col[active_output[o]]], indptr_col[active_output[o]+1] - indptr_col[active_output[o]], sizeof(unsigned int), compareints) == NULL) {
+						store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
+						a++;
+					}
 				}
 			}
 		}
+		fclose(file);
 	}
-	fclose(file);
 }
 
 void store_to_X(int row, int output_pos, unsigned int *indptr_row, unsigned int *indices_row, int number_of_cols, unsigned int *X){

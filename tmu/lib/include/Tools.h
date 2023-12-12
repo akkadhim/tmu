@@ -41,7 +41,7 @@ void tmu_produce_autoencoder_example(
     int categories,
     int random_per_category,
     int expert_start_index,
-    int expert_size
+    int expert_end_index
 );
 
 void tmu_encode(

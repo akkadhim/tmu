@@ -267,18 +267,28 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
 
         class_index = np.arange(self.number_of_classes, dtype=np.uint32)
 
+        total_size = sum(dataset[2] - dataset[1] for dataset in involved_datasets) 
+        examples_per_expert = [] 
+        for dataset in involved_datasets:
+            size = dataset[2] - dataset[1]
+            examples = int(number_of_examples * (size / total_size))
+            examples_per_expert.append(examples)
+        print(examples_per_expert) 
+
         number_of_experts = len(involved_datasets)
         if number_of_experts > 1:
             print("Number of Experts = %s" % number_of_experts)
         expert_start_index = 0
-        expert_size=0
-        examples_per_expert = int(number_of_examples / number_of_experts)
-        for expert in range(number_of_experts):
+        expert_end_index=0
+        ex = 0
+        for expert in examples_per_expert:
+            print("Running experts: %d, with number of examples:%d" % (ex+1,expert))
             if(number_of_experts > 1):
-                expert_start_index = involved_datasets[expert][1]
-                expert_size=involved_datasets[expert][2]
+                expert_start_index = involved_datasets[ex][1]
+                expert_end_index = involved_datasets[ex][2]
+                ex = ex + 1
 
-            for e in range(examples_per_expert):
+            for _ in range(expert):
                 self.rng.shuffle(class_index)
 
                 average_absolute_weights = np.zeros(self.number_of_clauses, dtype=np.float32)
@@ -295,7 +305,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                                                                     categories = categories, 
                                                                     random_per_category = random_per_category,
                                                                     expert_start_index=expert_start_index,
-                                                                    expert_size=expert_size)         
+                                                                    expert_end_index=expert_end_index)         
                 for i in class_index:
                     (target, encoded_X) = Yu[i], Xu[i].reshape((1, -1))
 
@@ -316,7 +326,6 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                     if self.feature_negation:
                         literal_active[ta_chunk_negated] = copy_literal_active_ta_chunk_negated
                     literal_active[ta_chunk] = copy_literal_active_ta_chunk
-
         return
 
     def predict(self, X, **kwargs):
