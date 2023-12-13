@@ -397,7 +397,8 @@ class ClauseBank(BaseClauseBank):
             categories,
             random_per_category,
             expert_start_index,
-		    expert_end_index
+		    expert_end_index,
+            enable_c_log
         ):
         X = np.ascontiguousarray(np.empty(int(self.number_of_ta_chunks * active_output.shape[0]), dtype=np.uint32))
         Y = np.ascontiguousarray(np.empty(int(active_output.shape[0]), dtype=np.uint32))
@@ -417,6 +418,7 @@ class ClauseBank(BaseClauseBank):
                                             int(categories),
                                             int(random_per_category),
                                             int(expert_start_index),
-                                            int(expert_end_index))
+                                            int(expert_end_index),
+                                            int(enable_c_log))
 
         return X.reshape((len(active_output), -1)), Y

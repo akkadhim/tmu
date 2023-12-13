@@ -28,6 +28,10 @@ https://arxiv.org/abs/1905.09688
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "Tools.h"
+#include <stdarg.h>
+
+int enable_printing = 0;
 
 typedef struct {
     unsigned int value;
@@ -60,11 +64,12 @@ void tmu_produce_autoencoder_example(
 		int categories,
 		int random_per_category,
 		int expert_start_index,
-		int expert_end_index
+		int expert_end_index,
+		int enable_log
 )
 {
+	enable_printing = enable_log;
 	void store_to_X(int row, int output_pos, unsigned int *indptr_row, unsigned int *indices_row, int number_of_cols, unsigned int *X);
-
 	int row;
 
 	int number_of_features = number_of_cols;
@@ -73,7 +78,7 @@ void tmu_produce_autoencoder_example(
 
 	FILE* file = fopen("result/output.txt", "a");
 	if (file != NULL) {
-		fprintf(file, "\nStart new example with expert_start_index = %d, and expert_end_index = %d\n",expert_start_index,expert_end_index);
+		MyPrint(file, "\nStart new example with expert_start_index = %d, and expert_end_index = %d\n",expert_start_index,expert_end_index);
 		
 		//int number_of_literals = 2*number_of_cols;
 		//int number_of_literal_chunks= (((number_of_literals-1)/32 + 1));
@@ -82,7 +87,7 @@ void tmu_produce_autoencoder_example(
 		// Loop over active outputs, producing one example per output
 		for (int o = 0; o < number_of_active_outputs; ++o) {
 			int output_pos = o*number_of_literal_chunks;
-			fprintf(file, "This loop for target word: %d\n", active_output[o]);
+			MyPrint(file, "This loop for target word: %d\n", active_output[o]);
 
 			// Initialize example with false features
 			int	number_of_feature_chunks = (((number_of_literals-1)/32 + 1));
@@ -159,13 +164,13 @@ void tmu_produce_autoencoder_example(
 				}
 				else
 				{
-					fprintf(file, "No Categories and Experts enabled.\n");
-					int expert_size = expert_end_index - expert_start_index;
+                    MyPrint(file, "No Categories and Experts enabled.\n");
+                    int expert_size = expert_end_index - expert_start_index;
 					if (expert_size > 0)
 					{
 						int *expert_rows = (int *) malloc(expert_size * sizeof(int));
 						if (expert_rows == NULL) {
-							fprintf(file, "Memory allocation failed.\n");
+							MyPrint(file, "Memory allocation failed.\n");
 							return;
 						}
 						//counter for document within particular expert
@@ -178,23 +183,24 @@ void tmu_produce_autoencoder_example(
 							}
 						}
 						if (expert_rows_index == 0) {
-							fprintf(file, "No valid target rows found.\n");
+							MyPrint(file, "No valid target rows found.\n");
 							free(expert_rows);
 							fclose(file);
 							return;
 						}
 						else{
-							fprintf(file, "Number of experts rows founded: %d\n", expert_rows_index);
+							MyPrint(file, "Number of experts rows founded: %d\n", expert_rows_index);
 						}
 						for (int a = 0; a < accumulation; ++a) {
 							int random_index = rand() % expert_rows_index;
 							row = expert_rows[random_index];
-							fprintf(file, "will take document %d from my expert_rows whcih is row number %d in X_train\n", random_index,row);
+							MyPrint(file, "will take document %d from my expert_rows whcih is row number %d in X_train\n", random_index,row);
 							store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
 						}
 						free(expert_rows);
 					}
 					else{
+						MyPrint(file, "start accumlation randomly\n");
 						for (int a = 0; a < accumulation; ++a) {
 							// Pick example randomly among positive examples
 							int random_index = start_index + (rand() % (end_index - start_index));
@@ -217,6 +223,18 @@ void tmu_produce_autoencoder_example(
 			}
 		}
 		fclose(file);
+	}
+}
+
+void myPrint(FILE *file, const char* format, ...)
+{
+	if (enable_printing == 1)
+	{
+    	va_list args;
+		va_start(args, format);
+		vfprintf(file, format, args);
+
+		va_end(args);
 	}
 }
 

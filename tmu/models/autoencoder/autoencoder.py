@@ -305,7 +305,8 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                                                                     categories = categories, 
                                                                     random_per_category = random_per_category,
                                                                     expert_start_index=expert_start_index,
-                                                                    expert_end_index=expert_end_index)         
+                                                                    expert_end_index=expert_end_index,
+                                                                    enable_c_log=False)         
                 for i in class_index:
                     (target, encoded_X) = Yu[i], Xu[i].reshape((1, -1))
 

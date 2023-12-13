@@ -41,8 +41,11 @@ void tmu_produce_autoencoder_example(
     int categories,
     int random_per_category,
     int expert_start_index,
-    int expert_end_index
+    int expert_end_index,
+    int enable_log
 );
+
+void myPrint(FILE* file, const char* format, ...);
 
 void tmu_encode(
     unsigned int *X,
@@ -54,5 +57,4 @@ void tmu_encode(
     int patch_dim_x,
     int patch_dim_y,
     int append_negated,
-    int class_features
-);
+    int class_features);
