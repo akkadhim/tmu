@@ -143,23 +143,24 @@ void tmu_produce_autoencoder_example(
 					qsort(indexed_data, total_rows, sizeof(IndexedValue), compareIndexedValues);
 
 					int size_per_category = accumulation / categories;
-					int category_start_index = 0;
-					for (int category = 1; category <= categories; category++) {
-						for (int a = 0; a < size_per_category; ++a) {
-							if (random_per_category)
-							{
-								//pick one by one without rondomize inside each category
-								int random_index_data = category_start_index + (rand() % size_per_category);
-								int random_index = indexed_data[random_index_data].index;
-								row = indices_col[random_index];	
-							}
-							else{
-								row = indices_col[indexed_data[a + category_start_index].index];
-							}
-							store_to_X(row,output_pos,indptr_row,indices_row,number_of_features,X);
+					// last category with most frequent words
+					int category_start_index = size_per_category * (categories - 1);
+					for (int a = 0; a < accumulation; ++a) {
+						if (random_per_category)
+						{
+							//pick one by one without rondomize inside each category
+							int random_index_data = category_start_index + (rand() % accumulation);
+							int random_index = indexed_data[random_index_data].index;
+							row = indices_col[random_index];	
 						}
-						category_start_index = category_start_index + size_per_category;
-					}			
+						else{
+							row = indices_col[indexed_data[a + category_start_index].index];
+						}
+						store_to_X(row,output_pos,indptr_row,indices_row,number_of_features,X);
+					}
+					// for (int category = 1; category <= categories; category++) {
+					// 	category_start_index = category_start_index + size_per_category;
+					// }			
 					free(indexed_data);
 				}
 				else
