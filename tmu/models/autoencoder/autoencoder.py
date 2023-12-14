@@ -251,6 +251,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             random_per_category=False,
             involved_datasets=[],
             shuffle=True, 
+            proportional_ds = False,
             *kwargs
             ):
         print("Starting the fitting...")
@@ -268,14 +269,17 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
         class_index = np.arange(self.number_of_classes, dtype=np.uint32)
 
         total_size = sum(dataset[2] - dataset[1] for dataset in involved_datasets) 
+        number_of_experts = len(involved_datasets)
         examples_per_expert = [] 
         for dataset in involved_datasets:
-            size = dataset[2] - dataset[1]
-            examples = int(number_of_examples * (size / total_size))
+            if proportional_ds:
+                size = dataset[2] - dataset[1]
+                examples = int(number_of_examples * (size / total_size))
+            else:
+                examples = int(number_of_examples / number_of_experts)
             examples_per_expert.append(examples)
         print(examples_per_expert) 
 
-        number_of_experts = len(involved_datasets)
         if number_of_experts > 1:
             print("Number of Experts = %s" % number_of_experts)
         expert_start_index = 0
