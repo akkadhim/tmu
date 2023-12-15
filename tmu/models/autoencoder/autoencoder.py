@@ -332,6 +332,89 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                         literal_active[ta_chunk_negated] = copy_literal_active_ta_chunk_negated
                     literal_active[ta_chunk] = copy_literal_active_ta_chunk
         return
+ 
+    def fit_combined(
+            self, 
+            X, 
+            target_words_clauses,
+            number_of_examples
+            ):
+
+        print("Starting the combined fitting...")
+        X_csr = csr_matrix(X.reshape(X.shape[0], -1))
+        X_csc = csc_matrix(X.reshape(X.shape[0], -1)).sorted_indices()
+        self.init(X_csr, Y=None)
+
+        if not np.array_equal(self.X_train, np.concatenate((X_csr.indptr, X_csr.indices))):
+            self.encoded_X_train = self.clause_bank.prepare_X_autoencoder(X_csr, X_csc, self.output_active)
+            self.X_train = np.concatenate((X_csr.indptr, X_csr.indices))
+
+        clause_active = self.activate_clauses()
+        literal_active = self.activate_literals()
+
+        class_index = np.arange(self.number_of_classes, dtype=np.uint32)
+        literals = 0
+        for target in target_words_clauses:
+            target_word_clauses = target[1]
+            for clause in target_word_clauses:
+                related_literals = clause[0]
+                literals += len(related_literals)
+
+        print("Count of all related_literals:", literals)
+
+        for _ in range(number_of_examples):
+            self.rng.shuffle(class_index)
+
+            average_absolute_weights = np.zeros(self.number_of_clauses, dtype=np.float32)
+            for i in class_index:
+                average_absolute_weights += np.absolute(self.weight_banks[i].get_weights())
+            average_absolute_weights /= self.number_of_classes
+            update_clause = self.rng.random(self.number_of_clauses) <= (
+                    self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
+
+            for i in range(len(class_index)):
+                source_clauses = target_words_clauses[i][1]
+                max_columns = max(len(clause) for clause in source_clauses)
+                for clause in source_clauses:
+                    while len(clause) < max_columns:
+                        clause.append(None)
+                for j in range(len(class_index)):
+                    if i != j:
+                        destination_clauses = target_words_clauses[j][1]
+                        max_columns = max(len(clause) for clause in destination_clauses)
+                        for clause in destination_clauses:
+                            while len(clause) < max_columns:
+                                clause.append(None)
+
+                        Xu, Yu = self.clause_bank.produce_autoencoder_example(
+                            encoded_X=self.encoded_X_train,
+                            target=i,
+                            target_true_p=self.feature_true_probability[self.output_active[i]],
+                            accumulation=self.accumulation,
+                            source_clauses=source_clauses,
+                            destination_clauses=destination_clauses,
+                            enable_c_log=False
+                        )
+
+                        ta_chunk = self.output_active[i] // 32
+                        chunk_pos = self.output_active[i] % 32
+                        copy_literal_active_ta_chunk = literal_active[ta_chunk]
+
+                        if self.feature_negation:
+                            ta_chunk_negated = (self.output_active[i] + self.clause_bank.number_of_features) // 32
+                            chunk_pos_negated = (self.output_active[i] + self.clause_bank.number_of_features) % 32
+                            copy_literal_active_ta_chunk_negated = literal_active[ta_chunk_negated]
+                            literal_active[ta_chunk_negated] &= ~(1 << chunk_pos_negated)
+
+                        literal_active[ta_chunk] &= ~(1 << chunk_pos)
+
+                        self.update(i, Yu, Xu, update_clause * clause_active, literal_active)
+
+                        if self.feature_negation:
+                            literal_active[ta_chunk_negated] = copy_literal_active_ta_chunk_negated
+                        literal_active[ta_chunk] = copy_literal_active_ta_chunk      
+
+        return
 
     def predict(self, X, **kwargs):
         X_csr = csr_matrix(X.reshape(X.shape[0], -1))

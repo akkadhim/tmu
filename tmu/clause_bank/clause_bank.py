@@ -422,3 +422,65 @@ class ClauseBank(BaseClauseBank):
                                             int(enable_c_log))
 
         return X.reshape((len(active_output), -1)), Y
+
+    def produce_autoencoder_example(
+            self,
+            encoded_X,
+            target,
+            target_true_p,
+            accumulation,
+            source_clauses,
+            destination_clauses,
+            enable_c_log=False
+        ):
+            (X_csr, X_csc, active_output, X) = encoded_X
+
+            target_value = self.rng.random() <= target_true_p
+
+            lib.tmu_produce_autoencoder_example(ffi.cast("unsigned int *", active_output.ctypes.data), active_output.shape[0],
+                                                ffi.cast("unsigned int *", np.ascontiguousarray(X_csr.indptr).ctypes.data),
+                                                ffi.cast("unsigned int *", np.ascontiguousarray(X_csr.indices).ctypes.data),
+                                                int(X_csr.shape[0]),
+                                                ffi.cast("unsigned int *", np.ascontiguousarray(X_csc.indptr).ctypes.data),
+                                                ffi.cast("unsigned int *", np.ascontiguousarray(X_csc.indices).ctypes.data),
+                                                int(X_csc.shape[1]),
+                                                ffi.cast("unsigned int *", X.ctypes.data),
+                                                int(target),
+                                                int(target_value),
+                                                int(accumulation),
+                                                
+                                                int(enable_c_log))
+
+            return X.reshape((1, -1)), target_value
+    def produce_autoencoder_combined(
+            self,
+            X_csr, 
+            X_csc, 
+            active_output, 
+            accumulation,
+            source_clauses,
+            destination_clauses,
+            enable_c_log
+        ):
+        X = np.ascontiguousarray(np.empty(int(self.number_of_ta_chunks * active_output.shape[0]), dtype=np.uint32))
+        Y = np.ascontiguousarray(np.empty(int(active_output.shape[0]), dtype=np.uint32))
+        
+        lib.tmu_produce_autoencoder_example(ffi.cast("unsigned int *", active_output.ctypes.data), 
+                                            active_output.shape[0],
+                                            ffi.cast("unsigned int *", np.ascontiguousarray(X_csr.indptr).ctypes.data),
+                                            ffi.cast("unsigned int *", np.ascontiguousarray(X_csr.indices).ctypes.data),
+                                            int(X_csr.shape[0]),
+                                            ffi.cast("unsigned int *", np.ascontiguousarray(X_csc.indptr).ctypes.data),
+                                            ffi.cast("unsigned int *", np.ascontiguousarray(X_csc.indices).ctypes.data),
+                                            int(X_csc.shape[1]),
+                                            ffi.cast("unsigned int *", X.ctypes.data),
+                                            ffi.cast("unsigned int *", Y.ctypes.data), 
+                                            int(accumulation),
+                                            ffi.cast("unsigned int *", np.ascontiguousarray(X_csc.data).ctypes.data),
+                                            int(categories),
+                                            int(random_per_category),
+                                            int(expert_start_index),
+                                            int(expert_end_index),
+                                            int(enable_c_log))
+
+        return X.reshape((len(active_output), -1)), Y
