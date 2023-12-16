@@ -340,7 +340,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             ):
 
         print("Starting the combined fitting...")
-        self.init(X_csr, Y=None)
+        self.init(X=None, Y=None)
 
         clause_active = self.activate_clauses()
         literal_active = self.activate_literals()
