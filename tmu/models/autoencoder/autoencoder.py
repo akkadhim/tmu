@@ -335,19 +335,12 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
  
     def fit_combined(
             self, 
-            X, 
             target_words_clauses,
             number_of_examples
             ):
 
         print("Starting the combined fitting...")
-        X_csr = csr_matrix(X.reshape(X.shape[0], -1))
-        X_csc = csc_matrix(X.reshape(X.shape[0], -1)).sorted_indices()
         self.init(X_csr, Y=None)
-
-        if not np.array_equal(self.X_train, np.concatenate((X_csr.indptr, X_csr.indices))):
-            self.encoded_X_train = self.clause_bank.prepare_X_autoencoder(X_csr, X_csc, self.output_active)
-            self.X_train = np.concatenate((X_csr.indptr, X_csr.indices))
 
         clause_active = self.activate_clauses()
         literal_active = self.activate_literals()
@@ -374,21 +367,19 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
 
             for i in range(len(class_index)):
                 source_clauses = target_words_clauses[i][1]
-                max_columns = max(len(clause) for clause in source_clauses)
+                source_max_columns = max(len(clause) for clause in source_clauses)
                 for clause in source_clauses:
-                    while len(clause) < max_columns:
+                    while len(clause) < source_max_columns:
                         clause.append(None)
                 for j in range(len(class_index)):
                     if i != j:
                         destination_clauses = target_words_clauses[j][1]
-                        max_columns = max(len(clause) for clause in destination_clauses)
+                        destination_max_columns = max(len(clause) for clause in destination_clauses)
                         for clause in destination_clauses:
-                            while len(clause) < max_columns:
+                            while len(clause) < destination_max_columns:
                                 clause.append(None)
 
                         Xu, Yu = self.clause_bank.produce_autoencoder_example(
-                            encoded_X=self.encoded_X_train,
-                            target=i,
                             target_true_p=self.feature_true_probability[self.output_active[i]],
                             accumulation=self.accumulation,
                             source_clauses=source_clauses,

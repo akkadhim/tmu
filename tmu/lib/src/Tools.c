@@ -227,6 +227,63 @@ void tmu_produce_autoencoder_example(
 	}
 }
 
+void tmu_produce_autoencoder_combined(
+        unsigned int *active_output,
+        int number_of_active_outputs,
+        unsigned int *indptr_row,
+        unsigned int *indices_row,
+        int number_of_rows,
+        unsigned int *indptr_col,
+        unsigned int *indices_col,
+        int number_of_cols,
+        unsigned int *X,
+        int target_value,
+        int accumulation,
+		unsigned int *source_clauses,
+		int source_columns,
+		unsigned int *destination_clauses,
+		int destination_columns
+)
+{
+	int row;
+
+	int number_of_features = number_of_cols;
+	int number_of_literals = 2*number_of_features;
+
+	unsigned int number_of_literal_chunks = (number_of_literals-1)/32 + 1;
+
+	// Initialize example vector X
+	memset(X, 0, number_of_literal_chunks * sizeof(unsigned int));
+	for (int k = number_of_features; k < number_of_literals; ++k) {
+		int chunk_nr = k / 32;
+		int chunk_pos = k % 32;
+		X[chunk_nr] |= (1U << chunk_pos);
+	}
+	
+	if (source_columns == 0 || destination_columns == 0) {
+		return;
+	}
+
+	if (target_value) {
+		for (int a = 0; a < accumulation; ++a) {
+			// Pick example randomly among positive examples
+			int random_index = indptr_col[active_output[target]] + (rand() % (indptr_col[active_output[target]+1] - indptr_col[active_output[target]]));
+			row = indices_col[random_index];
+			store_to_X(row,0,indptr_row,indices_row,number_of_features,X);
+		}
+	} else {
+		int a = 0;
+		while (a < accumulation) {
+			row = rand() % number_of_rows;
+
+			if (bsearch(&row, &indices_col[indptr_col[active_output[target]]], indptr_col[active_output[target]+1] - indptr_col[active_output[target]], sizeof(unsigned int), compareints) == NULL) {
+				store_to_X(row,0,indptr_row,indices_row,number_of_features,X);
+				a++;
+			}
+		}
+	}
+}
+
 void myPrint(FILE *file, const char* format, ...)
 {
 	if (enable_printing == 1)
@@ -249,6 +306,10 @@ void store_to_X(int row, int output_pos, unsigned int *indptr_row, unsigned int 
 		chunk_pos = (indices_row[k] + number_of_cols) % 32;
 		X[output_pos + chunk_nr] &= ~(1U << chunk_pos);
 	}
+}
+
+void build_X(int output_pos, unsigned int *indptr_row, unsigned int *indices_row, int number_of_cols, unsigned int *X){
+
 }
 
 int generate_random(int rows){

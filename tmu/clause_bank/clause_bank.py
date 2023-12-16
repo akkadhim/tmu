@@ -423,64 +423,28 @@ class ClauseBank(BaseClauseBank):
 
         return X.reshape((len(active_output), -1)), Y
 
-    def produce_autoencoder_example(
+    def produce_autoencoder_combined(
             self,
-            encoded_X,
-            target,
             target_true_p,
             accumulation,
             source_clauses,
             destination_clauses,
             enable_c_log=False
         ):
-            (X_csr, X_csc, active_output, X) = encoded_X
-
+            X = np.ascontiguousarray(np.empty(int(self.number_of_ta_chunks), dtype=np.uint32))
             target_value = self.rng.random() <= target_true_p
+            source_columns = len(source_clauses[0]) if len(source_clauses) > 0 else 0
+            source_clauses = np.ascontiguousarray(source_clauses)
+            destination_columns = len(destination_clauses[0]) if len(destination_clauses) > 0 else 0
+            destination_clauses = np.ascontiguousarray(destination_clauses)
 
-            lib.tmu_produce_autoencoder_example(ffi.cast("unsigned int *", active_output.ctypes.data), active_output.shape[0],
-                                                ffi.cast("unsigned int *", np.ascontiguousarray(X_csr.indptr).ctypes.data),
-                                                ffi.cast("unsigned int *", np.ascontiguousarray(X_csr.indices).ctypes.data),
-                                                int(X_csr.shape[0]),
-                                                ffi.cast("unsigned int *", np.ascontiguousarray(X_csc.indptr).ctypes.data),
-                                                ffi.cast("unsigned int *", np.ascontiguousarray(X_csc.indices).ctypes.data),
-                                                int(X_csc.shape[1]),
-                                                ffi.cast("unsigned int *", X.ctypes.data),
-                                                int(target),
+            lib.tmu_produce_autoencoder_example(ffi.cast("unsigned int *", X.ctypes.data),
                                                 int(target_value),
                                                 int(accumulation),
-                                                
+                                                ffi.cast("unsigned int *", np.ascontiguousarray(source_clauses).ctypes.data),
+                                                int(source_columns),
+                                                ffi.cast("unsigned int *", np.ascontiguousarray(destination_clauses).ctypes.data),
+                                                int(destination_columns),
                                                 int(enable_c_log))
 
             return X.reshape((1, -1)), target_value
-    def produce_autoencoder_combined(
-            self,
-            X_csr, 
-            X_csc, 
-            active_output, 
-            accumulation,
-            source_clauses,
-            destination_clauses,
-            enable_c_log
-        ):
-        X = np.ascontiguousarray(np.empty(int(self.number_of_ta_chunks * active_output.shape[0]), dtype=np.uint32))
-        Y = np.ascontiguousarray(np.empty(int(active_output.shape[0]), dtype=np.uint32))
-        
-        lib.tmu_produce_autoencoder_example(ffi.cast("unsigned int *", active_output.ctypes.data), 
-                                            active_output.shape[0],
-                                            ffi.cast("unsigned int *", np.ascontiguousarray(X_csr.indptr).ctypes.data),
-                                            ffi.cast("unsigned int *", np.ascontiguousarray(X_csr.indices).ctypes.data),
-                                            int(X_csr.shape[0]),
-                                            ffi.cast("unsigned int *", np.ascontiguousarray(X_csc.indptr).ctypes.data),
-                                            ffi.cast("unsigned int *", np.ascontiguousarray(X_csc.indices).ctypes.data),
-                                            int(X_csc.shape[1]),
-                                            ffi.cast("unsigned int *", X.ctypes.data),
-                                            ffi.cast("unsigned int *", Y.ctypes.data), 
-                                            int(accumulation),
-                                            ffi.cast("unsigned int *", np.ascontiguousarray(X_csc.data).ctypes.data),
-                                            int(categories),
-                                            int(random_per_category),
-                                            int(expert_start_index),
-                                            int(expert_end_index),
-                                            int(enable_c_log))
-
-        return X.reshape((len(active_output), -1)), Y
