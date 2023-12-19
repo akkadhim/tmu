@@ -23,7 +23,7 @@
 from tmu.tmulib import ffi, lib
 import tmu.tools
 from tmu.clause_bank.base_clause_bank import BaseClauseBank
-
+import random
 import numpy as np
 
 
@@ -427,24 +427,34 @@ class ClauseBank(BaseClauseBank):
             self,
             target_true_p,
             accumulation,
+            no_of_involved_fetures,
             source_clauses,
             destination_clauses,
-            enable_c_log=False
+            source_no_columns = 1,
+            destination_no_columns = 1,
+            enable_c_log=1
         ):
-            X = np.ascontiguousarray(np.empty(int(self.number_of_ta_chunks), dtype=np.uint32))
-            target_value = self.rng.random() <= target_true_p
-            source_columns = len(source_clauses[0]) if len(source_clauses) > 0 else 0
-            source_clauses = np.ascontiguousarray(source_clauses)
-            destination_columns = len(destination_clauses[0]) if len(destination_clauses) > 0 else 0
-            destination_clauses = np.ascontiguousarray(destination_clauses)
+            X = np.ascontiguousarray(np.empty(int(no_of_involved_fetures), dtype=np.uint32))
+            target_value = random.randint(0, 1)
+            source_clauses_array = np.ascontiguousarray([feature for clause in source_clauses for feature in clause for feature in feature], dtype=np.uint32)
+            destination_clauses_array = np.ascontiguousarray([feature for clause in destination_clauses for feature in clause for feature in feature], dtype=np.uint32)
 
-            lib.tmu_produce_autoencoder_example(ffi.cast("unsigned int *", X.ctypes.data),
+            print("source_columns:", source_no_columns)
+            print("destination_columns:", destination_no_columns)
+            print("target_value: %s" % target_value)
+            print(source_clauses_array)
+            print(destination_clauses_array)
+            
+            lib.tmu_produce_autoencoder_combined(int(no_of_involved_fetures),
+                                                ffi.cast("unsigned int *", X.ctypes.data),
                                                 int(target_value),
                                                 int(accumulation),
-                                                ffi.cast("unsigned int *", np.ascontiguousarray(source_clauses).ctypes.data),
-                                                int(source_columns),
-                                                ffi.cast("unsigned int *", np.ascontiguousarray(destination_clauses).ctypes.data),
-                                                int(destination_columns),
+                                                ffi.cast("unsigned int *", np.ascontiguousarray(source_clauses_array).ctypes.data),
+                                                int(len(source_clauses)),
+                                                int(source_no_columns),
+                                                ffi.cast("unsigned int *", np.ascontiguousarray(destination_clauses_array).ctypes.data),
+                                                int(len(destination_clauses)),
+                                                int(destination_no_columns),
                                                 int(enable_c_log))
 
             return X.reshape((1, -1)), target_value

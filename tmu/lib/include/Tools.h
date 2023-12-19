@@ -46,22 +46,17 @@ void tmu_produce_autoencoder_example(
 );
 
 void tmu_produce_autoencoder_combined(
-        unsigned int *active_output,
-        int number_of_active_outputs,
-        unsigned int *indptr_row,
-        unsigned int *indices_row,
-        int number_of_rows,
-        unsigned int *indptr_col,
-        unsigned int *indices_col,
-        int number_of_cols,
+        int number_of_X_cols,
         unsigned int *X,
-        int target,
         int target_value,
         int accumulation,
 		unsigned int *source_clauses,
+        int source_rows,
 		int source_columns,
 		unsigned int *destination_clauses,
-		int destination_columns
+        int destination_rows,
+		int destination_columns,
+        int enable_log
 );
 
 void myPrint(FILE* file, const char* format, ...);
@@ -77,3 +72,5 @@ void tmu_encode(
     int patch_dim_y,
     int append_negated,
     int class_features);
+
+void store_feature_to_X(int feature, unsigned int *X, int number_of_X_cols);

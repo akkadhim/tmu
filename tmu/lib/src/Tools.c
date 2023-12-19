@@ -30,6 +30,7 @@ https://arxiv.org/abs/1905.09688
 #include <stdlib.h>
 #include "Tools.h"
 #include <stdarg.h>
+#include <stdbool.h>
 
 int enable_printing = 0;
 
@@ -68,21 +69,17 @@ void tmu_produce_autoencoder_example(
 		int enable_log
 )
 {
-	enable_printing = enable_log;
 	void store_to_X(int row, int output_pos, unsigned int *indptr_row, unsigned int *indices_row, int number_of_cols, unsigned int *X);
-	int row;
-
-	int number_of_features = number_of_cols;
-	int number_of_literals = 2*number_of_features;
-	unsigned int number_of_literal_chunks = (number_of_literals-1)/32 + 1;
-
 	FILE* file = fopen("result/output.txt", "a");
 	if (file != NULL) {
+		enable_printing = enable_log;
 		myPrint(file, "\nStart new example with expert_start_index = %d, and expert_end_index = %d\n",expert_start_index,expert_end_index);
 		
-		//int number_of_literals = 2*number_of_cols;
-		//int number_of_literal_chunks= (((number_of_literals-1)/32 + 1));
-		
+		int row;
+
+		int number_of_features = number_of_cols;
+		int number_of_literals = 2*number_of_features;
+		unsigned int number_of_literal_chunks = (number_of_literals-1)/32 + 1;
 
 		// Loop over active outputs, producing one example per output
 		for (int o = 0; o < number_of_active_outputs; ++o) {
@@ -228,59 +225,92 @@ void tmu_produce_autoencoder_example(
 }
 
 void tmu_produce_autoencoder_combined(
-        unsigned int *active_output,
-        int number_of_active_outputs,
-        unsigned int *indptr_row,
-        unsigned int *indices_row,
-        int number_of_rows,
-        unsigned int *indptr_col,
-        unsigned int *indices_col,
-        int number_of_cols,
+        int number_of_X_cols,
         unsigned int *X,
         int target_value,
         int accumulation,
 		unsigned int *source_clauses,
+		int source_rows,
 		int source_columns,
 		unsigned int *destination_clauses,
-		int destination_columns
+		int destination_rows,
+		int destination_columns,
+		int enable_log
 )
 {
-	int row;
+	void store_clause_to_X(int index,int columns, unsigned int *clauses, int number_of_X_cols, unsigned int *X);
+	FILE* file = fopen("result/output.txt", "a");
+	if (file != NULL) {
+		enable_printing = enable_log;
+		myPrint(file, "\nStart new accumulation = %d\n",accumulation);
+		myPrint(file, "number_of_X_cols = %d\n",number_of_X_cols);
+		myPrint(file, "target_value = %d\n",target_value);
+		myPrint(file, "source_columns = %d\n",source_columns);
+		myPrint(file, "destination_columns = %d\n",destination_columns);
+		myPrint(file, "source_rows = %d\n",source_rows);
+		myPrint(file, "destination_rows = %d\n",destination_rows);
+		
+		enable_printing = enable_log;
+		int row;
+		int length_of_source = source_rows * source_columns;
+		int length_of_destination = destination_rows * destination_columns;
+		myPrint(file, "no_of_source_clauses = %d\n",source_rows);
+		myPrint(file, "no_of_destination_clauses = %d\n",destination_rows);
 
-	int number_of_features = number_of_cols;
-	int number_of_literals = 2*number_of_features;
+		int number_of_features = number_of_X_cols;
+		int number_of_literals = 2*number_of_features;
 
-	unsigned int number_of_literal_chunks = (number_of_literals-1)/32 + 1;
+		unsigned int number_of_literal_chunks = (number_of_literals-1)/32 + 1;
 
-	// Initialize example vector X
-	memset(X, 0, number_of_literal_chunks * sizeof(unsigned int));
-	for (int k = number_of_features; k < number_of_literals; ++k) {
-		int chunk_nr = k / 32;
-		int chunk_pos = k % 32;
-		X[chunk_nr] |= (1U << chunk_pos);
-	}
-	
-	if (source_columns == 0 || destination_columns == 0) {
-		return;
-	}
-
-	if (target_value) {
-		for (int a = 0; a < accumulation; ++a) {
-			// Pick example randomly among positive examples
-			int random_index = indptr_col[active_output[target]] + (rand() % (indptr_col[active_output[target]+1] - indptr_col[active_output[target]]));
-			row = indices_col[random_index];
-			store_to_X(row,0,indptr_row,indices_row,number_of_features,X);
+		// Initialize example vector X
+		memset(X, 0, number_of_literal_chunks * sizeof(unsigned int));
+		for (int k = number_of_features; k < number_of_literals; ++k) {
+			int chunk_nr = k / 32;
+			int chunk_pos = k % 32;
+			X[chunk_nr] |= (1U << chunk_pos);
 		}
-	} else {
-		int a = 0;
-		while (a < accumulation) {
-			row = rand() % number_of_rows;
+		
+		if (source_columns == 0 || destination_columns == 0) {
+			return;
+		}
 
-			if (bsearch(&row, &indices_col[indptr_col[active_output[target]]], indptr_col[active_output[target]+1] - indptr_col[active_output[target]], sizeof(unsigned int), compareints) == NULL) {
-				store_to_X(row,0,indptr_row,indices_row,number_of_features,X);
+		if (target_value) {
+			for (int a = 0; a < accumulation; ++a) {
+				int random_source_index = (rand() % source_rows);
+				store_clause_to_X(random_source_index, source_columns, source_clauses,number_of_X_cols,X);
+
+				int random_destination_index = (rand() % destination_rows);
+				store_clause_to_X(random_destination_index, destination_columns, destination_clauses,number_of_X_cols,X);
+			}
+		} else {
+			int a = 0;
+			while (a < accumulation) {
+				int r = 0;
+				int total_features = source_columns + destination_columns;
+				while (r < total_features){
+					int feature;
+					bool featureExists;
+					do {
+						featureExists = false;
+						feature = rand() % number_of_X_cols;
+						for (int i = 0; i < length_of_source; i++) {
+							if (source_clauses[i] == feature) {
+								featureExists = true;
+							}
+						}
+						for (int i = 0; i < length_of_destination; i++) {
+							if (destination_clauses[i] == feature) {
+								featureExists = true;
+							}
+						}
+					} while (featureExists);
+					store_feature_to_X(feature, X, number_of_X_cols);
+					r++;
+				}
 				a++;
 			}
 		}
+		fclose(file);
 	}
 }
 
@@ -308,8 +338,26 @@ void store_to_X(int row, int output_pos, unsigned int *indptr_row, unsigned int 
 	}
 }
 
-void build_X(int output_pos, unsigned int *indptr_row, unsigned int *indices_row, int number_of_cols, unsigned int *X){
+void store_clause_to_X(int index,int columns, unsigned int *clauses, int number_of_X_cols, unsigned int *X){
+	int start_index = index * columns;
+	int end_index = (index + 1) * columns;
+	for (int k = start_index; k < end_index; ++k) {
+		if (clauses[k] > 0)
+		{
+        	store_feature_to_X(clauses[k], X, number_of_X_cols);
+		}
+    }
+}
 
+void store_feature_to_X(int feature, unsigned int *X, int number_of_X_cols)
+{
+    int chunk_nr = feature / 32;
+    int chunk_pos = feature % 32;
+    X[chunk_nr] |= (1U << chunk_pos);
+
+    chunk_nr = (feature + number_of_X_cols) / 32;
+    chunk_pos = (feature + number_of_X_cols) % 32;
+    X[chunk_nr] &= ~(1U << chunk_pos);
 }
 
 int generate_random(int rows){

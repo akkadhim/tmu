@@ -15,6 +15,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from tabulate import tabulate
 from tmu.weight_bank import WeightBank
 from tmu.models.base import MultiWeightBankMixin, SingleClauseBankMixin, TMBaseModel
 import numpy as np
@@ -310,7 +311,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                                                                     random_per_category = random_per_category,
                                                                     expert_start_index=expert_start_index,
                                                                     expert_end_index=expert_end_index,
-                                                                    enable_c_log=False)         
+                                                                    enable_c_log=True)         
                 for i in class_index:
                     (target, encoded_X) = Yu[i], Xu[i].reshape((1, -1))
 
@@ -340,22 +341,33 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             ):
 
         print("Starting the combined fitting...")
-        self.init(X=None, Y=None)
-
-        clause_active = self.activate_clauses()
-        literal_active = self.activate_literals()
-
-        class_index = np.arange(self.number_of_classes, dtype=np.uint32)
+        #[0,[[clause1],[clause2],[clause3],...,[clauseN]]]
+        #[1,[[clause1],[clause2],[clause3],...,[clauseN]]]
+        #[2,[[clause1],[clause2],[clause3],...,[clauseN]]]
+        #[...,[[clause1],[clause2],[clause3],...,[clauseN]]]
+        #[TWs,[[clause1],[clause2],[clause3],...,[clauseN]]]
+        #clause = [feature1, feature2, ...]
         literals = 0
+        max_feature = 1
         for target in target_words_clauses:
             target_word_clauses = target[1]
             for clause in target_word_clauses:
                 related_literals = clause[0]
                 literals += len(related_literals)
+                for feature in related_literals:
+                    if feature > max_feature:
+                        max_feature = feature
 
         print("Count of all related_literals:", literals)
+        print("Maximum feature:", max_feature)
 
-        for _ in range(number_of_examples):
+        X_csc = csr_matrix((1, max_feature), dtype=np.int64)
+        self.init(X=X_csc, Y=None)
+        clause_active = self.activate_clauses()
+        literal_active = self.activate_literals()
+        class_index = np.arange(self.number_of_classes, dtype=np.uint32)
+
+        for ex in range(number_of_examples):
             self.rng.shuffle(class_index)
 
             average_absolute_weights = np.zeros(self.number_of_clauses, dtype=np.float32)
@@ -367,24 +379,36 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
 
             for i in range(len(class_index)):
                 source_clauses = target_words_clauses[i][1]
-                source_max_columns = max(len(clause) for clause in source_clauses)
+                source_max_columns = max(len(row[0]) for row in source_clauses)
                 for clause in source_clauses:
-                    while len(clause) < source_max_columns:
-                        clause.append(None)
+                    while len(clause[0]) < source_max_columns:
+                        clause[0].append(0)
+                if(ex == 0 and i == 0):
+                    header = [f"Column {i}" for i in range(1, source_max_columns + 1)]
+                    table = [row[0] for row in source_clauses]
+                    print(tabulate(table, headers=header, tablefmt="grid"))
+
                 for j in range(len(class_index)):
                     if i != j:
                         destination_clauses = target_words_clauses[j][1]
-                        destination_max_columns = max(len(clause) for clause in destination_clauses)
+                        destination_max_columns = max(len(row[0]) for row in destination_clauses)
                         for clause in destination_clauses:
-                            while len(clause) < destination_max_columns:
-                                clause.append(None)
+                            while len(clause[0]) < destination_max_columns:
+                                clause[0].append(0)
+                        if(ex == 0 and i == 0):
+                            header = [f"Column {i}" for i in range(1, destination_max_columns + 1)]
+                            table = [row[0] for row in destination_clauses]
+                            print(tabulate(table, headers=header, tablefmt="grid"))
 
-                        Xu, Yu = self.clause_bank.produce_autoencoder_example(
+                        Xu, Yu = self.clause_bank.produce_autoencoder_combined(
                             target_true_p=self.feature_true_probability[self.output_active[i]],
                             accumulation=self.accumulation,
-                            source_clauses=source_clauses,
-                            destination_clauses=destination_clauses,
-                            enable_c_log=False
+                            no_of_involved_fetures = max_feature,
+                            source_clauses = source_clauses,
+                            source_no_columns = int(source_max_columns),
+                            destination_clauses = destination_clauses,
+                            destination_no_columns = int(destination_max_columns),
+                            enable_c_log=True
                         )
 
                         ta_chunk = self.output_active[i] // 32
