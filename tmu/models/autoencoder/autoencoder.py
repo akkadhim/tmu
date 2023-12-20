@@ -337,7 +337,9 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
     def fit_combined(
             self, 
             target_words_clauses,
-            number_of_examples
+            number_of_examples,
+            print_python = False,
+            print_c = False
             ):
 
         print("Starting the combined fitting...")
@@ -383,10 +385,11 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                 for clause in source_clauses:
                     while len(clause[0]) < source_max_columns:
                         clause[0].append(0)
-                if(ex == 0 and i == 0):
+                if((ex == number_of_examples - 1) and i == 0):
                     header = [f"Column {i}" for i in range(1, source_max_columns + 1)]
                     table = [row[0] for row in source_clauses]
-                    print(tabulate(table, headers=header, tablefmt="grid"))
+                    if print_python:
+                        print(tabulate(table, headers=header, tablefmt="grid"))
 
                 for j in range(len(class_index)):
                     if i != j:
@@ -395,10 +398,12 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                         for clause in destination_clauses:
                             while len(clause[0]) < destination_max_columns:
                                 clause[0].append(0)
-                        if(ex == 0 and i == 0):
+                        if((ex == number_of_examples - 1) and i == 0):
                             header = [f"Column {i}" for i in range(1, destination_max_columns + 1)]
                             table = [row[0] for row in destination_clauses]
-                            print(tabulate(table, headers=header, tablefmt="grid"))
+                            if print_python:
+                                print(tabulate(table, headers=header, tablefmt="grid"))
+                            print("clause source (%-2d) and destination (%-2d)" % (i,j))
 
                         Xu, Yu = self.clause_bank.produce_autoencoder_combined(
                             target_true_p=self.feature_true_probability[self.output_active[i]],
@@ -408,7 +413,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                             source_no_columns = int(source_max_columns),
                             destination_clauses = destination_clauses,
                             destination_no_columns = int(destination_max_columns),
-                            enable_c_log=True
+                            enable_c_log = print_c
                         )
 
                         ta_chunk = self.output_active[i] // 32

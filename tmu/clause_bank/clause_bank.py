@@ -438,13 +438,6 @@ class ClauseBank(BaseClauseBank):
             target_value = random.randint(0, 1)
             source_clauses_array = np.ascontiguousarray([feature for clause in source_clauses for feature in clause for feature in feature], dtype=np.uint32)
             destination_clauses_array = np.ascontiguousarray([feature for clause in destination_clauses for feature in clause for feature in feature], dtype=np.uint32)
-
-            print("source_columns:", source_no_columns)
-            print("destination_columns:", destination_no_columns)
-            print("target_value: %s" % target_value)
-            print(source_clauses_array)
-            print(destination_clauses_array)
-            
             lib.tmu_produce_autoencoder_combined(int(no_of_involved_fetures),
                                                 ffi.cast("unsigned int *", X.ctypes.data),
                                                 int(target_value),

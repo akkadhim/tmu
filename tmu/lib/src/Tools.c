@@ -242,20 +242,18 @@ void tmu_produce_autoencoder_combined(
 	FILE* file = fopen("result/output.txt", "a");
 	if (file != NULL) {
 		enable_printing = enable_log;
-		myPrint(file, "\nStart new accumulation = %d\n",accumulation);
-		myPrint(file, "number_of_X_cols = %d\n",number_of_X_cols);
-		myPrint(file, "target_value = %d\n",target_value);
-		myPrint(file, "source_columns = %d\n",source_columns);
-		myPrint(file, "destination_columns = %d\n",destination_columns);
-		myPrint(file, "source_rows = %d\n",source_rows);
-		myPrint(file, "destination_rows = %d\n",destination_rows);
+		myPrint(file, "\nStart new accumulation (%d) for target_value (%d) ",accumulation,target_value);
+		// myPrint(file, "number_of_X_cols = %d\n",number_of_X_cols);
+		// myPrint(file, "target_value = %d\n",target_value);
+		// myPrint(file, "source_columns = %d\n",source_columns);
+		// myPrint(file, "destination_columns = %d\n",destination_columns);
+		// myPrint(file, "source_rows = %d\n",source_rows);
+		// myPrint(file, "destination_rows = %d\n",destination_rows);
 		
 		enable_printing = enable_log;
 		int row;
 		int length_of_source = source_rows * source_columns;
 		int length_of_destination = destination_rows * destination_columns;
-		myPrint(file, "no_of_source_clauses = %d\n",source_rows);
-		myPrint(file, "no_of_destination_clauses = %d\n",destination_rows);
 
 		int number_of_features = number_of_X_cols;
 		int number_of_literals = 2*number_of_features;
@@ -275,14 +273,18 @@ void tmu_produce_autoencoder_combined(
 		}
 
 		if (target_value) {
+			myPrint(file, "and selected clauses is ");
 			for (int a = 0; a < accumulation; ++a) {
 				int random_source_index = (rand() % source_rows);
 				store_clause_to_X(random_source_index, source_columns, source_clauses,number_of_X_cols,X);
+				myPrint(file, "S(%d) ",random_source_index);
 
 				int random_destination_index = (rand() % destination_rows);
 				store_clause_to_X(random_destination_index, destination_columns, destination_clauses,number_of_X_cols,X);
+				myPrint(file, "D(%d) -- ",random_destination_index);
 			}
 		} else {
+			myPrint(file, "and selected not exist fetures is ");
 			int a = 0;
 			while (a < accumulation) {
 				int r = 0;
@@ -304,6 +306,7 @@ void tmu_produce_autoencoder_combined(
 							}
 						}
 					} while (featureExists);
+					myPrint(file, "F(%d) ",feature);
 					store_feature_to_X(feature, X, number_of_X_cols);
 					r++;
 				}
