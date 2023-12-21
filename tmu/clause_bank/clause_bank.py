@@ -422,7 +422,33 @@ class ClauseBank(BaseClauseBank):
                                             int(enable_c_log))
 
         return X.reshape((len(active_output), -1)), Y
+    
+    def produce_autoencoder_example_per_class(
+            self,
+            encoded_X,
+            target,
+            accumulation,
+            target_true_p
+    ):
+        (X_csr, X_csc, active_output, X) = encoded_X
 
+        # target_value = self.rng.random() <= target_true_p
+        target_value = random.randint(0, 1)
+
+        lib.tmu_produce_autoencoder_example(ffi.cast("unsigned int *", active_output.ctypes.data), active_output.shape[0],
+                                             ffi.cast("unsigned int *", np.ascontiguousarray(X_csr.indptr).ctypes.data),
+                                             ffi.cast("unsigned int *", np.ascontiguousarray(X_csr.indices).ctypes.data),
+                                             int(X_csr.shape[0]),
+                                             ffi.cast("unsigned int *", np.ascontiguousarray(X_csc.indptr).ctypes.data),
+                                             ffi.cast("unsigned int *", np.ascontiguousarray(X_csc.indices).ctypes.data),
+                                             int(X_csc.shape[1]),
+                                             ffi.cast("unsigned int *", X.ctypes.data),
+                                             int(target),
+                                             int(target_value),
+                                             int(accumulation))
+
+        return X.reshape((1, -1)), target_value
+    
     def produce_autoencoder_combined(
             self,
             target_true_p,

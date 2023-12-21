@@ -488,7 +488,10 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
         weights = self.weight_banks[the_class].get_weights()
 
         for e in range(number_of_examples):
-            Xu, Yu = self.clause_bank.produce_autoencoder_example(self.encoded_X_test, the_class, self.accumulation, categories=0, target_true_p= self.feature_true_probability[self.output_active[the_class]])
+            Xu, Yu = self.clause_bank.produce_autoencoder_example_per_class(self.encoded_X_test, 
+                                                                  the_class, 
+                                                                  self.accumulation, 
+                                                                  target_true_p= self.feature_true_probability[self.output_active[the_class]])
             clause_outputs = self.clause_bank.calculate_clause_outputs_predict(Xu, 0)
 
             if positive_polarity:
@@ -504,9 +507,9 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                 else:
                     false_positive += (weights < 0) * clause_outputs
 
-        precesion = 1.0 * true_positive / (true_positive + false_positive)
+        precision = 1.0 * true_positive / (true_positive + false_positive)
         recall = true_positive / (true_positive + false_negative)
-        return precesion, recall
+        return precision, recall
     
     def get_weight(self, the_class, clause):
         return self.weight_banks[the_class].get_weights()[clause]
