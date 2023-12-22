@@ -435,23 +435,23 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                             enable_c_log = print_c
                         )
 
-                        # ta_chunk = self.output_active[i] // 32
-                        # chunk_pos = self.output_active[i] % 32
-                        # copy_literal_active_ta_chunk = literal_active[ta_chunk]
+                        ta_chunk = self.output_active[i] // 32
+                        chunk_pos = self.output_active[i] % 32
+                        copy_literal_active_ta_chunk = literal_active[ta_chunk]
 
-                        # if self.feature_negation:
-                        #     ta_chunk_negated = (self.output_active[i] + self.clause_bank.number_of_features) // 32
-                        #     chunk_pos_negated = (self.output_active[i] + self.clause_bank.number_of_features) % 32
-                        #     copy_literal_active_ta_chunk_negated = literal_active[ta_chunk_negated]
-                        #     literal_active[ta_chunk_negated] &= ~(1 << chunk_pos_negated)
+                        if self.feature_negation:
+                            ta_chunk_negated = (self.output_active[i] + self.clause_bank.number_of_features) // 32
+                            chunk_pos_negated = (self.output_active[i] + self.clause_bank.number_of_features) % 32
+                            copy_literal_active_ta_chunk_negated = literal_active[ta_chunk_negated]
+                            literal_active[ta_chunk_negated] &= ~(1 << chunk_pos_negated)
 
-                        # literal_active[ta_chunk] &= ~(1 << chunk_pos)
+                        literal_active[ta_chunk] &= ~(1 << chunk_pos)
 
-                        # self.update(i, Yu, Xu, update_clause * clause_active, literal_active)
+                        self.update(i, Yu, Xu, update_clause * clause_active, literal_active)
 
-                        # if self.feature_negation:
-                        #     literal_active[ta_chunk_negated] = copy_literal_active_ta_chunk_negated
-                        # literal_active[ta_chunk] = copy_literal_active_ta_chunk      
+                        if self.feature_negation:
+                            literal_active[ta_chunk_negated] = copy_literal_active_ta_chunk_negated
+                        literal_active[ta_chunk] = copy_literal_active_ta_chunk      
 
         return
 
