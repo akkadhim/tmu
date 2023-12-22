@@ -244,7 +244,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
 
         return literal_active
 
-    def fit(
+    def documents_fit(
             self, 
             X, 
             number_of_examples=2000, 
@@ -334,31 +334,38 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                     literal_active[ta_chunk] = copy_literal_active_ta_chunk
         return
  
-    def fit_combined(
+    def clauses_fit(
             self, 
-            target_words_clauses,
             number_of_examples,
+            number_of_features,
+            target_words_clauses,
             print_python = False,
             print_c = False
             ):
 
         print("Starting the combined fitting...")
+
+        #target_words_clauses=
         #[0,[[clause1],[clause2],[clause3],...,[clauseN]]]
         #[1,[[clause1],[clause2],[clause3],...,[clauseN]]]
         #[2,[[clause1],[clause2],[clause3],...,[clauseN]]]
         #[...,[[clause1],[clause2],[clause3],...,[clauseN]]]
         #[TWs,[[clause1],[clause2],[clause3],...,[clauseN]]]
-        #clause = [feature1, feature2, ...]
+
+        #clause = weight,[feature1, feature2, ...]
+
         literals = 0
-        max_feature = 1
+        max_feature = number_of_features
         for target in target_words_clauses:
             target_word_clauses = target[1]
             for clause in target_word_clauses:
-                related_literals = clause[0]
+                related_literals = clause[1]
                 literals += len(related_literals)
-                for feature in related_literals:
-                    if feature > max_feature:
-                        max_feature = feature
+                # for feature in related_literals:
+                #     if feature >= number_of_features:
+                #         feature = 
+                #     if feature > max_feature:
+                #         max_feature = feature
 
         print("Count of all related_literals:", literals)
         print("Maximum feature:", max_feature)
@@ -380,24 +387,34 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                     self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
 
             for i in range(len(class_index)):
-                source_clauses = target_words_clauses[i][1]
-                source_max_columns = max(len(row[0]) for row in source_clauses)
+                source_clauses = []
+                source_clauses_weights = []
+                for clauses_array in target_words_clauses[i][1]:
+                    source_clauses.append(clauses_array[1])
+                    source_clauses_weights.append(clauses_array[0])
+                    
+                source_max_columns = max(len(row) for row in source_clauses)
                 for clause in source_clauses:
-                    while len(clause[0]) < source_max_columns:
-                        clause[0].append(0)
+                    while len(clause) < source_max_columns:
+                        clause.append(0)
                 if((ex == number_of_examples - 1) and i == 0):
                     header = [f"Column {i}" for i in range(1, source_max_columns + 1)]
-                    table = [row[0] for row in source_clauses]
+                    table = [row for row in source_clauses]
                     if print_python:
                         print(tabulate(table, headers=header, tablefmt="grid"))
 
                 for j in range(len(class_index)):
                     if i != j:
-                        destination_clauses = target_words_clauses[j][1]
-                        destination_max_columns = max(len(row[0]) for row in destination_clauses)
+                        destination_clauses = []
+                        destination_clauses_weights = []
+                        for clauses_array in target_words_clauses[i][1]:
+                            destination_clauses.append(clauses_array[1])
+                            destination_clauses_weights.append(clauses_array[0])
+
+                        destination_max_columns = max(len(row) for row in destination_clauses)
                         for clause in destination_clauses:
-                            while len(clause[0]) < destination_max_columns:
-                                clause[0].append(0)
+                            while len(clause) < destination_max_columns:
+                                clause.append(0)
                         if((ex == number_of_examples - 1) and i == 0):
                             header = [f"Column {i}" for i in range(1, destination_max_columns + 1)]
                             table = [row[0] for row in destination_clauses]
@@ -410,29 +427,31 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                             accumulation=self.accumulation,
                             no_of_involved_fetures = max_feature,
                             source_clauses = source_clauses,
+                            source_clauses_weights = source_clauses_weights,
                             source_no_columns = int(source_max_columns),
                             destination_clauses = destination_clauses,
+                            destination_clauses_weights = destination_clauses_weights,
                             destination_no_columns = int(destination_max_columns),
                             enable_c_log = print_c
                         )
 
-                        ta_chunk = self.output_active[i] // 32
-                        chunk_pos = self.output_active[i] % 32
-                        copy_literal_active_ta_chunk = literal_active[ta_chunk]
+                        # ta_chunk = self.output_active[i] // 32
+                        # chunk_pos = self.output_active[i] % 32
+                        # copy_literal_active_ta_chunk = literal_active[ta_chunk]
 
-                        if self.feature_negation:
-                            ta_chunk_negated = (self.output_active[i] + self.clause_bank.number_of_features) // 32
-                            chunk_pos_negated = (self.output_active[i] + self.clause_bank.number_of_features) % 32
-                            copy_literal_active_ta_chunk_negated = literal_active[ta_chunk_negated]
-                            literal_active[ta_chunk_negated] &= ~(1 << chunk_pos_negated)
+                        # if self.feature_negation:
+                        #     ta_chunk_negated = (self.output_active[i] + self.clause_bank.number_of_features) // 32
+                        #     chunk_pos_negated = (self.output_active[i] + self.clause_bank.number_of_features) % 32
+                        #     copy_literal_active_ta_chunk_negated = literal_active[ta_chunk_negated]
+                        #     literal_active[ta_chunk_negated] &= ~(1 << chunk_pos_negated)
 
-                        literal_active[ta_chunk] &= ~(1 << chunk_pos)
+                        # literal_active[ta_chunk] &= ~(1 << chunk_pos)
 
-                        self.update(i, Yu, Xu, update_clause * clause_active, literal_active)
+                        # self.update(i, Yu, Xu, update_clause * clause_active, literal_active)
 
-                        if self.feature_negation:
-                            literal_active[ta_chunk_negated] = copy_literal_active_ta_chunk_negated
-                        literal_active[ta_chunk] = copy_literal_active_ta_chunk      
+                        # if self.feature_negation:
+                        #     literal_active[ta_chunk_negated] = copy_literal_active_ta_chunk_negated
+                        # literal_active[ta_chunk] = copy_literal_active_ta_chunk      
 
         return
 

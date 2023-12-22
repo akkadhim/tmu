@@ -403,7 +403,7 @@ class ClauseBank(BaseClauseBank):
         X = np.ascontiguousarray(np.empty(int(self.number_of_ta_chunks * active_output.shape[0]), dtype=np.uint32))
         Y = np.ascontiguousarray(np.empty(int(active_output.shape[0]), dtype=np.uint32))
         
-        lib.tmu_produce_autoencoder_example(ffi.cast("unsigned int *", active_output.ctypes.data), 
+        lib.produce_example_by_documents(ffi.cast("unsigned int *", active_output.ctypes.data), 
                                             active_output.shape[0],
                                             ffi.cast("unsigned int *", np.ascontiguousarray(X_csr.indptr).ctypes.data),
                                             ffi.cast("unsigned int *", np.ascontiguousarray(X_csr.indices).ctypes.data),
@@ -435,7 +435,7 @@ class ClauseBank(BaseClauseBank):
         # target_value = self.rng.random() <= target_true_p
         target_value = random.randint(0, 1)
 
-        lib.tmu_produce_autoencoder_example(ffi.cast("unsigned int *", active_output.ctypes.data), active_output.shape[0],
+        lib.produce_example_per_target_by_document(ffi.cast("unsigned int *", active_output.ctypes.data), active_output.shape[0],
                                              ffi.cast("unsigned int *", np.ascontiguousarray(X_csr.indptr).ctypes.data),
                                              ffi.cast("unsigned int *", np.ascontiguousarray(X_csr.indices).ctypes.data),
                                              int(X_csr.shape[0]),
@@ -455,23 +455,30 @@ class ClauseBank(BaseClauseBank):
             accumulation,
             no_of_involved_fetures,
             source_clauses,
+            source_clauses_weights,
             destination_clauses,
-            source_no_columns = 1,
-            destination_no_columns = 1,
-            enable_c_log=1
+            destination_clauses_weights,
+            source_no_columns,
+            destination_no_columns,
+            enable_c_log
         ):
-            X = np.ascontiguousarray(np.empty(int(no_of_involved_fetures), dtype=np.uint32))
+            X = np.ascontiguousarray(np.empty(int(self.number_of_ta_chunks), dtype=np.uint32))
+            source_clauses_array = np.ascontiguousarray([feature for clause in source_clauses for feature in clause], dtype=np.uint32)
+            source_clauses_weights_array = np.ascontiguousarray(source_clauses_weights, dtype=np.int32)
+            destination_clauses_array = np.ascontiguousarray([feature for clause in destination_clauses for feature in clause], dtype=np.uint32)
+            destination_clauses_weights_array = np.ascontiguousarray(destination_clauses_weights, dtype=np.int32)
             target_value = random.randint(0, 1)
-            source_clauses_array = np.ascontiguousarray([feature for clause in source_clauses for feature in clause for feature in feature], dtype=np.uint32)
-            destination_clauses_array = np.ascontiguousarray([feature for clause in destination_clauses for feature in clause for feature in feature], dtype=np.uint32)
-            lib.tmu_produce_autoencoder_combined(int(no_of_involved_fetures),
+
+            lib.produce_example_by_clauses(int(no_of_involved_fetures),
                                                 ffi.cast("unsigned int *", X.ctypes.data),
                                                 int(target_value),
                                                 int(accumulation),
-                                                ffi.cast("unsigned int *", np.ascontiguousarray(source_clauses_array).ctypes.data),
+                                                ffi.cast("unsigned int *", source_clauses_array.ctypes.data),
+                                                ffi.cast("int *", source_clauses_weights_array.ctypes.data),
                                                 int(len(source_clauses)),
                                                 int(source_no_columns),
-                                                ffi.cast("unsigned int *", np.ascontiguousarray(destination_clauses_array).ctypes.data),
+                                                ffi.cast("unsigned int *", destination_clauses_array.ctypes.data),
+                                                ffi.cast("int *", destination_clauses_weights_array.ctypes.data),
                                                 int(len(destination_clauses)),
                                                 int(destination_no_columns),
                                                 int(enable_c_log))

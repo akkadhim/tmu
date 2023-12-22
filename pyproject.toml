@@ -47,6 +47,8 @@ flags = [
 sources = [
     "tmu/lib/src/ClauseBank.c",
     "tmu/lib/src/Tools.c",
+    "tmu/lib/src/AutoencoderDocuments.c",
+    "tmu/lib/src/AutoencoderClauses.c",
     "tmu/lib/src/WeightBank.c",
     "tmu/lib/src/ClauseBankSparse.c",
     "tmu/lib/src/random/pcg32_fast.c",
@@ -56,6 +58,8 @@ sources = [
 headers = [
     "tmu/lib/include/ClauseBank.h",
     "tmu/lib/include/Tools.h",
+    "tmu/lib/include/AutoencoderDocuments.h",
+    "tmu/lib/include/AutoencoderClauses.h",
     "tmu/lib/include/WeightBank.h",
     "tmu/lib/include/ClauseBankSparse.h",
     "tmu/lib/include/fast_rand_seed.h"

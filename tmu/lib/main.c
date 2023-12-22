@@ -2,7 +2,8 @@
 #include "include/Attention.h"
 #include "include/ClauseBank.h"
 #include "include/ClauseBankSparse.h"
-#include "include/Tools.h"
+#include "include/AutoencoderClauses.h"
+#include "include/AutoencoderDocuments.h"
 #include "include/WeightBank.h"
 
 #ifndef _WIN32

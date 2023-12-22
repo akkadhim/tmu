@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "AutoencoderDocuments.h"
 #include <stdarg.h>
 #include <stdbool.h>
+#include "Tools.h"
 
 int enable_printing = 0;
 
@@ -23,17 +23,18 @@ int generate_random(int rows){
 	return rand() % rows;
 }
 
-typedef struct {
-    unsigned int value;
-    unsigned int index;
-} IndexedValue;
-
 unsigned int compareints(const void * a, const void * b)
 {
   return(*(unsigned int*)a- *(unsigned int*)b);
 }
 
-// Comparison function for sorting IndexedValue array
-unsigned int compareIndexedValues(const void *a, const void *b) {
-    return ((IndexedValue *)a)->value - ((IndexedValue *)b)->value;
+void store_feature_to_X(int feature, int number_of_cols, unsigned int *X, int output_pos)
+{
+    int chunk_nr = feature / 32;
+    int chunk_pos = feature % 32;
+    X[output_pos + chunk_nr] |= (1U << chunk_pos);
+
+    chunk_nr = (feature + number_of_cols) / 32;
+    chunk_pos = (feature + number_of_cols) % 32;
+    X[output_pos + chunk_nr] &= ~(1U << chunk_pos);
 }

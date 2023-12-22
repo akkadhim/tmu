@@ -29,10 +29,26 @@ https://arxiv.org/abs/1905.09688
 #include <string.h>
 #include <stdlib.h>
 #include "AutoencoderDocuments.h"
+#include "Tools.h"
 #include <stdarg.h>
 #include <stdbool.h>
 
-void produce_example(
+typedef struct {
+    unsigned int value;
+    unsigned int index;
+} IndexedValue;
+
+unsigned int compareIndexedValues(const void *a, const void *b) {
+    return ((IndexedValue *)a)->value - ((IndexedValue *)b)->value;
+}
+
+void store_document_to_X(int row, int output_pos, unsigned int *indptr_row, unsigned int *indices_row, int number_of_cols, unsigned int *X){
+	for (int k = indptr_row[row]; k < indptr_row[row+1]; ++k) {	
+		store_feature_to_X(indices_row[k], number_of_cols, X, output_pos);
+	}
+}
+
+void produce_example_by_documents(
         unsigned int *active_output,
         int number_of_active_outputs,
         unsigned int *indptr_row,
@@ -52,7 +68,6 @@ void produce_example(
 		int enable_log
 )
 {
-	void store_to_X(int row, int output_pos, unsigned int *indptr_row, unsigned int *indices_row, int number_of_cols, unsigned int *X);
 	FILE* file = fopen("result/output.txt", "a");
 	if (file != NULL) {
 		enable_printing = enable_log;
@@ -89,7 +104,7 @@ void produce_example(
 				// If no positive/negative examples, produce a random example
 				for (int a = 0; a < accumulation; ++a) {
 					row = generate_random(number_of_rows);
-					store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
+					store_document_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
 				}
 			}
 
@@ -136,7 +151,7 @@ void produce_example(
 						else{
 							row = indices_col[indexed_data[a + category_start_index].index];
 						}
-						store_to_X(row,output_pos,indptr_row,indices_row,number_of_features,X);
+						store_document_to_X(row,output_pos,indptr_row,indices_row,number_of_features,X);
 					}
 					// for (int category = 1; category <= categories; category++) {
 					// 	category_start_index = category_start_index + size_per_category;
@@ -176,7 +191,7 @@ void produce_example(
 							int random_index = rand() % expert_rows_index;
 							row = expert_rows[random_index];
 							myPrint(file, "will take document %d from my expert_rows whcih is row number %d in X_train\n", random_index,row);
-							store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
+							store_document_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
 						}
 						free(expert_rows);
 					}
@@ -186,7 +201,7 @@ void produce_example(
 							// Pick example randomly among positive examples
 							int random_index = start_index + (rand() % (end_index - start_index));
 							row = indices_col[random_index];
-							store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
+							store_document_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
 						}
 						
 					}
@@ -197,7 +212,7 @@ void produce_example(
 					row = rand() % number_of_rows;
 
 					if (bsearch(&row, &indices_col[indptr_col[active_output[o]]], indptr_col[active_output[o]+1] - indptr_col[active_output[o]], sizeof(unsigned int), compareints) == NULL) {
-						store_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
+						store_document_to_X(row, output_pos, indptr_row,indices_row,number_of_cols,X);
 						a++;
 					}
 				}
@@ -207,7 +222,7 @@ void produce_example(
 	}
 }
 
-void produce_example_per_target(
+void produce_example_per_target_by_document(
         unsigned int *active_output,
         int number_of_active_outputs,
         unsigned int *indptr_row,
@@ -241,7 +256,7 @@ void produce_example_per_target(
 		// If no positive/negative examples, produce a random example
 		for (int a = 0; a < accumulation; ++a) {
 			row = rand() % number_of_rows;
-			store_to_X(row,0,indptr_row,indices_row,number_of_features,X);
+			store_document_to_X(row,0,indptr_row,indices_row,number_of_features,X);
 		}
 		return;
 	}
@@ -251,7 +266,7 @@ void produce_example_per_target(
 			// Pick example randomly among positive examples
 			int random_index = indptr_col[active_output[target]] + (rand() % (indptr_col[active_output[target]+1] - indptr_col[active_output[target]]));
 			row = indices_col[random_index];
-			store_to_X(row,0,indptr_row,indices_row,number_of_features,X);
+			store_document_to_X(row,0,indptr_row,indices_row,number_of_features,X);
 		}
 	} else {
 		int a = 0;
@@ -259,7 +274,7 @@ void produce_example_per_target(
 			row = rand() % number_of_rows;
 
 			if (bsearch(&row, &indices_col[indptr_col[active_output[target]]], indptr_col[active_output[target]+1] - indptr_col[active_output[target]], sizeof(unsigned int), compareints) == NULL) {
-				store_to_X(row,0,indptr_row,indices_row,number_of_features,X);
+				store_document_to_X(row,0,indptr_row,indices_row,number_of_features,X);
 				a++;
 			}
 		}
@@ -376,21 +391,4 @@ void tmu_encode(
 		}
 		input_pos += input_step_size;
 	}
-}
-
-void store_to_X(int row, int output_pos, unsigned int *indptr_row, unsigned int *indices_row, int number_of_cols, unsigned int *X){
-	for (int k = indptr_row[row]; k < indptr_row[row+1]; ++k) {	
-		store_feature_to_X(indices_row[k], number_of_cols, X, output_pos);
-	}
-}
-
-void store_feature_to_X(int feature, int number_of_cols, unsigned int *X, int output_pos)
-{
-    int chunk_nr = feature / 32;
-    int chunk_pos = feature % 32;
-    X[output_pos + chunk_nr] |= (1U << chunk_pos);
-
-    chunk_nr = (feature + number_of_cols) / 32;
-    chunk_pos = (feature + number_of_cols) % 32;
-    X[output_pos + chunk_nr] &= ~(1U << chunk_pos);
 }
