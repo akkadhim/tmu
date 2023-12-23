@@ -339,6 +339,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             number_of_examples,
             number_of_features,
             target_words_clauses,
+            accumlated_clauses = False,
             print_python = False,
             print_c = False
             ):
@@ -388,10 +389,14 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
 
             first_target_word = True
             for i in range(len(class_index)):
-                if (first_target_word):
-                    source_clauses, source_clauses_weights, source_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = i)
+                if (accumlated_clauses):
+                    if first_target_word:
+                        source_clauses, source_clauses_weights, source_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = i)
+                        first_target_word = False
+                    else:
+                        self.get_current_clauses(i)
                 else:
-                    self.get_current_clauses(i)
+                    source_clauses, source_clauses_weights, source_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = i)
 
                 for j in range(len(class_index)):
                     if i != j:

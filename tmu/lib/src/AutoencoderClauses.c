@@ -65,7 +65,7 @@ void produce_example_by_clauses(
 		}
 
 		if (target_value) {
-			myPrint(file, "and selected clauses is ");
+			myPrint(file, "and selected positive clauses is ");
 			int a = 0;
 			while (a < accumulation) {
 				bool positive_clause = false;
@@ -90,7 +90,7 @@ void produce_example_by_clauses(
 				}
 			}
 		} else {
-			myPrint(file, "and selected not exist fetures is ");
+			myPrint(file, "and selected negative clauses is ");
 
 			int a = 0;
 			while (a < accumulation) {
