@@ -386,41 +386,16 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             update_clause = self.rng.random(self.number_of_clauses) <= (
                     self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
 
+            first_target_word = True
             for i in range(len(class_index)):
-                source_clauses = []
-                source_clauses_weights = []
-                for clauses_array in target_words_clauses[i][1]:
-                    source_clauses.append(clauses_array[1])
-                    source_clauses_weights.append(clauses_array[0])
-                    
-                source_max_columns = max(len(row) for row in source_clauses)
-                for clause in source_clauses:
-                    while len(clause) < source_max_columns:
-                        clause.append(0)
-                if((ex == number_of_examples - 1) and i == 0):
-                    header = [f"Column {i}" for i in range(1, source_max_columns + 1)]
-                    table = [row for row in source_clauses]
-                    if print_python:
-                        print(tabulate(table, headers=header, tablefmt="grid"))
+                if (first_target_word):
+                    source_clauses, source_clauses_weights, source_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = i)
+                else:
+                    self.get_current_clauses(i)
 
                 for j in range(len(class_index)):
                     if i != j:
-                        destination_clauses = []
-                        destination_clauses_weights = []
-                        for clauses_array in target_words_clauses[i][1]:
-                            destination_clauses.append(clauses_array[1])
-                            destination_clauses_weights.append(clauses_array[0])
-
-                        destination_max_columns = max(len(row) for row in destination_clauses)
-                        for clause in destination_clauses:
-                            while len(clause) < destination_max_columns:
-                                clause.append(0)
-                        if((ex == number_of_examples - 1) and i == 0):
-                            header = [f"Column {i}" for i in range(1, destination_max_columns + 1)]
-                            table = [row[0] for row in destination_clauses]
-                            if print_python:
-                                print(tabulate(table, headers=header, tablefmt="grid"))
-                            print("clause source (%-2d) and destination (%-2d)" % (i,j))
+                        destination_clauses, destination_clauses_weights, destination_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = j)
 
                         Xu, Yu = self.clause_bank.produce_autoencoder_combined(
                             target_true_p=self.feature_true_probability[self.output_active[i]],
@@ -454,6 +429,47 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                         literal_active[ta_chunk] = copy_literal_active_ta_chunk      
 
         return
+
+    def prepare_clauses(self, target_words_clauses, print_python, target_word):
+        clauses = []
+        clauses_weights = []
+        for clauses_array in target_words_clauses[target_word][1]:
+            clauses.append(clauses_array[1])
+            clauses_weights.append(clauses_array[0])
+
+        max_columns = max(len(row) for row in clauses)
+        for clause in clauses:
+            while len(clause) < max_columns:
+                clause.append(0)
+
+        if print_python:
+            header = [f"Column {i}" for i in range(1, max_columns + 1)]
+            table = [row for row in clauses]
+            print(tabulate(table, headers=header, tablefmt="grid"))
+
+        return clauses,clauses_weights,max_columns
+        
+    def get_current_clauses(self, target_word):
+        weights = []
+        clauses = []
+        for j in range(self.number_of_clauses):
+            weight = self.get_weight(target_word, j)
+            related_literals = []
+            number_of_literals = 0 
+            for k in range(self.clause_bank.number_of_literals):
+                if self.get_ta_action(j, k) == 1:
+                    number_of_literals = number_of_literals + 1
+                    related_literals.append(k)
+            # if weight > 0:
+            weights.append(weight)
+            clauses.append([related_literals])
+
+        max_columns = max(len(row) for row in clauses)
+        for clause in clauses:
+            while len(clause) < max_columns:
+                clause.append(0)
+
+        return weights,clauses,max_columns
 
     def predict(self, X, **kwargs):
         X_csr = csr_matrix(X.reshape(X.shape[0], -1))

@@ -10,7 +10,9 @@ void store_clause_to_X(int index,int columns, unsigned int *clauses, int number_
 	int start_index = index * columns;
 	int end_index = (index + 1) * columns;
 	for (int k = start_index; k < end_index; ++k) {
-		store_feature_to_X(clauses[k], number_of_X_cols, X, 0);
+		if(clauses[k] > 0){
+			store_feature_to_X(clauses[k], number_of_X_cols, X, 0);
+		}
     }
 }
 
@@ -89,33 +91,58 @@ void produce_example_by_clauses(
 			}
 		} else {
 			myPrint(file, "and selected not exist fetures is ");
+
 			int a = 0;
 			while (a < accumulation) {
-				int r = 0;
-				int total_features = source_columns + destination_columns;
-				while (r < total_features){
-					int feature;
-					bool featureExists;
-					do {
-						featureExists = false;
-						feature = rand() % number_of_cols;
-						for (int i = 0; i < length_of_source; i++) {
-							if (source_clauses[i] == feature) {
-								featureExists = true;
-							}
-						}
-						for (int i = 0; i < length_of_destination; i++) {
-							if (destination_clauses[i] == feature) {
-								featureExists = true;
-							}
-						}
-					} while (featureExists);
-					myPrint(file, "F(%d) ",feature);
-					//store_feature_to_X(feature, X, number_of_cols,0);
-					r++;
+				bool negative_clause = false;
+
+				int random_source_index = (rand() % source_rows);
+				if (source_clauses_weights[random_source_index] < 0)
+				{
+					store_clause_to_X(random_source_index, source_columns, source_clauses,number_of_cols,X);
+					myPrint(file, "S(%d) ",random_source_index);
+					negative_clause = true;
 				}
-				a++;
+				int random_destination_index = (rand() % destination_rows);
+				if (destination_clauses_weights[random_destination_index] < 0)
+				{
+					store_clause_to_X(random_destination_index, destination_columns, destination_clauses,number_of_cols,X);
+					myPrint(file, "D(%d) -- ",random_destination_index);
+					negative_clause = true;
+				}
+				if (negative_clause)
+				{
+					a++;
+				}
 			}
+
+			// int a = 0;
+			// while (a < accumulation) {
+			// 	int r = 0;
+			// 	int total_features = source_columns + destination_columns;
+			// 	while (r < total_features){
+			// 		int feature;
+			// 		bool featureExists;
+			// 		do {
+			// 			featureExists = false;
+			// 			feature = rand() % number_of_cols;
+			// 			for (int i = 0; i < length_of_source; i++) {
+			// 				if (source_clauses[i] == feature) {
+			// 					featureExists = true;
+			// 				}
+			// 			}
+			// 			for (int i = 0; i < length_of_destination; i++) {
+			// 				if (destination_clauses[i] == feature) {
+			// 					featureExists = true;
+			// 				}
+			// 			}
+			// 		} while (featureExists);
+			// 		myPrint(file, "F(%d) ",feature);
+			// 		//store_feature_to_X(feature, X, number_of_cols,0);
+			// 		r++;
+			// 	}
+			// 	a++;
+			// }
 		}
 		fclose(file);
 	}
