@@ -29,6 +29,7 @@ void produce_example_by_clauses(
 		int *destination_clauses_weights,
 		int destination_rows,
 		int destination_columns,
+		int negative_weight_clause,
 		int enable_log
 )
 {
@@ -74,15 +75,15 @@ void produce_example_by_clauses(
 				if (source_clauses_weights[random_source_index] > 0)
 				{
 					store_clause_to_X(random_source_index, source_columns, source_clauses,number_of_cols,X);
-					myPrint(file, "S(%d) ",random_source_index);
-					positive_clause = true;
-				}
-				int random_destination_index = (rand() % destination_rows);
-				if (destination_clauses_weights[random_destination_index] > 0)
-				{
-					store_clause_to_X(random_destination_index, destination_columns, destination_clauses,number_of_cols,X);
-					myPrint(file, "D(%d) -- ",random_destination_index);
-					positive_clause = true;
+					int random_destination_index = (rand() % destination_rows);
+					if (destination_clauses_weights[random_destination_index] > 0)
+					{
+						store_clause_to_X(random_destination_index, destination_columns, destination_clauses,number_of_cols,X);
+						
+						myPrint(file, "S(%d) ",random_source_index);
+						myPrint(file, "D(%d) -- ",random_destination_index);
+						positive_clause = true;
+					}
 				}
 				if (positive_clause)
 				{
@@ -91,58 +92,60 @@ void produce_example_by_clauses(
 			}
 		} else {
 			myPrint(file, "and selected negative clauses is ");
+			if(negative_weight_clause){
+				int a = 0;
+				while (a < accumulation) {
+					bool negative_clause = false;
 
-			int a = 0;
-			while (a < accumulation) {
-				bool negative_clause = false;
-
-				int random_source_index = (rand() % source_rows);
-				if (source_clauses_weights[random_source_index] < 0)
-				{
-					store_clause_to_X(random_source_index, source_columns, source_clauses,number_of_cols,X);
-					myPrint(file, "S(%d) ",random_source_index);
-					negative_clause = true;
+					int random_source_index = (rand() % source_rows);
+					if (source_clauses_weights[random_source_index] < 0)
+					{
+						store_clause_to_X(random_source_index, source_columns, source_clauses,number_of_cols,X);
+						int random_destination_index = (rand() % destination_rows);
+						if (destination_clauses_weights[random_destination_index] < 0)
+						{
+							store_clause_to_X(random_destination_index, destination_columns, destination_clauses,number_of_cols,X);
+							
+							myPrint(file, "S(%d) ",random_source_index);
+							myPrint(file, "D(%d) -- ",random_destination_index);
+							negative_clause = true;
+						}
+					}
+					if (negative_clause)
+					{
+						a++;
+					}
 				}
-				int random_destination_index = (rand() % destination_rows);
-				if (destination_clauses_weights[random_destination_index] < 0)
-				{
-					store_clause_to_X(random_destination_index, destination_columns, destination_clauses,number_of_cols,X);
-					myPrint(file, "D(%d) -- ",random_destination_index);
-					negative_clause = true;
-				}
-				if (negative_clause)
-				{
+			}
+			else{
+				int a = 0;
+				while (a < accumulation) {
+					int r = 0;
+					int total_features = source_columns + destination_columns;
+					while (r < total_features){
+						int feature;
+						bool featureExists;
+						do {
+							featureExists = false;
+							feature = rand() % number_of_cols;
+							for (int i = 0; i < length_of_source; i++) {
+								if (source_clauses[i] == feature) {
+									featureExists = true;
+								}
+							}
+							for (int i = 0; i < length_of_destination; i++) {
+								if (destination_clauses[i] == feature) {
+									featureExists = true;
+								}
+							}
+						} while (featureExists);
+						myPrint(file, "F(%d) ",feature);
+						store_feature_to_X(feature, X, number_of_cols,0);
+						r++;
+					}
 					a++;
 				}
 			}
-
-			// int a = 0;
-			// while (a < accumulation) {
-			// 	int r = 0;
-			// 	int total_features = source_columns + destination_columns;
-			// 	while (r < total_features){
-			// 		int feature;
-			// 		bool featureExists;
-			// 		do {
-			// 			featureExists = false;
-			// 			feature = rand() % number_of_cols;
-			// 			for (int i = 0; i < length_of_source; i++) {
-			// 				if (source_clauses[i] == feature) {
-			// 					featureExists = true;
-			// 				}
-			// 			}
-			// 			for (int i = 0; i < length_of_destination; i++) {
-			// 				if (destination_clauses[i] == feature) {
-			// 					featureExists = true;
-			// 				}
-			// 			}
-			// 		} while (featureExists);
-			// 		myPrint(file, "F(%d) ",feature);
-			// 		//store_feature_to_X(feature, X, number_of_cols,0);
-			// 		r++;
-			// 	}
-			// 	a++;
-			// }
 		}
 		fclose(file);
 	}

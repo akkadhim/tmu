@@ -460,6 +460,7 @@ class ClauseBank(BaseClauseBank):
             destination_clauses_weights,
             source_no_columns,
             destination_no_columns,
+            negative_weight_clause,
             enable_c_log
         ):
             X = np.ascontiguousarray(np.empty(int(self.number_of_ta_chunks), dtype=np.uint32))
@@ -481,6 +482,7 @@ class ClauseBank(BaseClauseBank):
                                                 ffi.cast("int *", destination_clauses_weights_array.ctypes.data),
                                                 int(len(destination_clauses)),
                                                 int(destination_no_columns),
+                                                int(negative_weight_clause),
                                                 int(enable_c_log))
 
             return X.reshape((1, -1)), target_value

@@ -339,7 +339,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             number_of_examples,
             number_of_features,
             target_words_clauses,
-            accumlated_clauses = False,
+            negative_weight_clause,
             print_python = False,
             print_c = False
             ):
@@ -387,18 +387,10 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             update_clause = self.rng.random(self.number_of_clauses) <= (
                     self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
 
-            first_target_word = True
-            for i in range(len(class_index)):
-                if (accumlated_clauses):
-                    if first_target_word:
-                        source_clauses, source_clauses_weights, source_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = i)
-                        first_target_word = False
-                    else:
-                        self.get_current_clauses(i)
-                else:
-                    source_clauses, source_clauses_weights, source_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = i)
+            for i in class_index:
+                source_clauses, source_clauses_weights, source_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = i)
 
-                for j in range(len(class_index)):
+                for j in class_index:
                     if i != j:
                         destination_clauses, destination_clauses_weights, destination_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = j)
 
@@ -412,6 +404,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                             destination_clauses = destination_clauses,
                             destination_clauses_weights = destination_clauses_weights,
                             destination_no_columns = int(destination_max_columns),
+                            negative_weight_clause = negative_weight_clause,
                             enable_c_log = print_c
                         )
 
@@ -453,28 +446,6 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             print(tabulate(table, headers=header, tablefmt="grid"))
 
         return clauses,clauses_weights,max_columns
-        
-    def get_current_clauses(self, target_word):
-        weights = []
-        clauses = []
-        for j in range(self.number_of_clauses):
-            weight = self.get_weight(target_word, j)
-            related_literals = []
-            number_of_literals = 0 
-            for k in range(self.clause_bank.number_of_literals):
-                if self.get_ta_action(j, k) == 1:
-                    number_of_literals = number_of_literals + 1
-                    related_literals.append(k)
-            # if weight > 0:
-            weights.append(weight)
-            clauses.append([related_literals])
-
-        max_columns = max(len(row) for row in clauses)
-        for clause in clauses:
-            while len(clause) < max_columns:
-                clause.append(0)
-
-        return weights,clauses,max_columns
 
     def predict(self, X, **kwargs):
         X_csr = csr_matrix(X.reshape(X.shape[0], -1))

@@ -12,5 +12,6 @@ void produce_example_by_clauses(
 		int *destination_clauses_weights,
 		int destination_rows,
 		int destination_columns,
+		int negative_weight_clause,
 		int enable_log
 );
