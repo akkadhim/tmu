@@ -470,7 +470,7 @@ class ClauseBank(BaseClauseBank):
             destination_clauses_weights_array = np.ascontiguousarray(destination_clauses_weights, dtype=np.int32)
             target_value = random.randint(0, 1)
 
-            lib.produce_example_by_clauses(int(no_of_involved_fetures),
+            lib.produce_example_by_combined_clauses(int(no_of_involved_fetures),
                                                 ffi.cast("unsigned int *", X.ctypes.data),
                                                 int(target_value),
                                                 int(accumulation),
@@ -482,6 +482,35 @@ class ClauseBank(BaseClauseBank):
                                                 ffi.cast("int *", destination_clauses_weights_array.ctypes.data),
                                                 int(len(destination_clauses)),
                                                 int(destination_no_columns),
+                                                int(negative_weight_clause),
+                                                int(enable_c_log))
+
+            return X.reshape((1, -1)), target_value
+
+    def produce_autoencoder_from_clauses(
+            self,
+            target_true_p,
+            accumulation,
+            no_of_involved_fetures,
+            source_clauses,
+            source_clauses_weights,
+            source_no_columns,
+            negative_weight_clause,
+            enable_c_log
+        ):
+            X = np.ascontiguousarray(np.empty(int(self.number_of_ta_chunks), dtype=np.uint32))
+            source_clauses_array = np.ascontiguousarray([feature for clause in source_clauses for feature in clause], dtype=np.uint32)
+            source_clauses_weights_array = np.ascontiguousarray(source_clauses_weights, dtype=np.int32)
+            target_value = random.randint(0, 1)
+
+            lib.produce_example_by_clauses(int(no_of_involved_fetures),
+                                                ffi.cast("unsigned int *", X.ctypes.data),
+                                                int(target_value),
+                                                int(accumulation),
+                                                ffi.cast("unsigned int *", source_clauses_array.ctypes.data),
+                                                ffi.cast("int *", source_clauses_weights_array.ctypes.data),
+                                                int(len(source_clauses)),
+                                                int(source_no_columns),
                                                 int(negative_weight_clause),
                                                 int(enable_c_log))
 

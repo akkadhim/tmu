@@ -16,7 +16,7 @@ void store_clause_to_X(int index,int columns, unsigned int *clauses, int number_
     }
 }
 
-void produce_example_by_clauses(
+void produce_example_by_combined_clauses(
         int number_of_cols,
         unsigned int *X,
         int target_value,
@@ -135,6 +135,111 @@ void produce_example_by_clauses(
 							}
 							for (int i = 0; i < length_of_destination; i++) {
 								if (destination_clauses[i] == feature) {
+									featureExists = true;
+								}
+							}
+						} while (featureExists);
+						myPrint(file, "F(%d) ",feature);
+						store_feature_to_X(feature, number_of_cols, X,0);
+						r++;
+					}
+					a++;
+				}
+			}
+		}
+		fclose(file);
+	}
+}
+
+void produce_example_by_clauses(
+        int number_of_cols,
+        unsigned int *X,
+        int target_value,
+        int accumulation,
+		unsigned int *source_clauses,
+		int *source_clauses_weights,
+		int source_rows,
+		int source_columns,
+		int negative_weight_clause,
+		int enable_log
+)
+{
+	FILE* file = fopen("result/output.txt", "a");
+	if (file != NULL) {
+		enable_printing = enable_log;
+		myPrint(file, "\nStart new accumulation (%d) for target_value (%d) ",accumulation,target_value);
+		
+		int row;
+		int length_of_source = source_rows * source_columns;
+
+		int number_of_features = number_of_cols;
+		int number_of_literals = 2*number_of_features;
+
+		unsigned int number_of_literal_chunks = (number_of_literals-1)/32 + 1;
+
+		// Initialize example vector X
+		memset(X, 0, number_of_literal_chunks * sizeof(unsigned int));
+		for (int k = number_of_features; k < number_of_literals; ++k) {
+			int chunk_nr = k / 32;
+			int chunk_pos = k % 32;
+			X[chunk_nr] |= (1U << chunk_pos);
+		}
+		
+		if (source_columns == 0 || source_rows == 0) {
+			return;
+		}
+
+		if (target_value) {
+			myPrint(file, "and selected positive clauses is ");
+			int a = 0;
+			while (a < accumulation) {
+				bool positive_clause = false;
+
+				int random_source_index = (rand() % source_rows);
+				if (source_clauses_weights[random_source_index] > 0)
+				{
+					store_clause_to_X(random_source_index, source_columns, source_clauses,number_of_cols,X);
+					myPrint(file, "S(%d) ",random_source_index);
+					positive_clause = true;
+				}
+				if (positive_clause)
+				{
+					a++;
+				}
+			}
+		} else {
+			myPrint(file, "and selected negative clauses is ");
+			if(negative_weight_clause){
+				int a = 0;
+				while (a < accumulation) {
+					bool negative_clause = false;
+
+					int random_source_index = (rand() % source_rows);
+					if (source_clauses_weights[random_source_index] < 0)
+					{
+						store_clause_to_X(random_source_index, source_columns, source_clauses,number_of_cols,X);
+						myPrint(file, "S(%d) ",random_source_index);
+						negative_clause = true;
+					}
+					if (negative_clause)
+					{
+						a++;
+					}
+				}
+			}
+			else{
+				int a = 0;
+				while (a < accumulation) {
+					int r = 0;
+					int total_features = source_columns;
+					while (r < total_features){
+						int feature;
+						bool featureExists;
+						do {
+							featureExists = false;
+							feature = rand() % number_of_cols;
+							for (int i = 0; i < length_of_source; i++) {
+								if (source_clauses[i] == feature) {
 									featureExists = true;
 								}
 							}

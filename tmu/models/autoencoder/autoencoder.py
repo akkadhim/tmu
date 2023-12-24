@@ -390,41 +390,51 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             for i in class_index:
                 source_clauses, source_clauses_weights, source_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = i)
 
-                for j in class_index:
-                    if i != j:
-                        destination_clauses, destination_clauses_weights, destination_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = j)
+                # for j in class_index:
+                    # if i != j:
+                        # destination_clauses, destination_clauses_weights, destination_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = j)
+                        # Xu, Yu = self.clause_bank.produce_autoencoder_combined(
+                        #     target_true_p=self.feature_true_probability[self.output_active[i]],
+                        #     accumulation=self.accumulation,
+                        #     no_of_involved_fetures = max_feature,
+                        #     source_clauses = source_clauses,
+                        #     source_clauses_weights = source_clauses_weights,
+                        #     source_no_columns = int(source_max_columns),
+                        #     destination_clauses = destination_clauses,
+                        #     destination_clauses_weights = destination_clauses_weights,
+                        #     destination_no_columns = int(destination_max_columns),
+                        #     negative_weight_clause = negative_weight_clause,
+                        #     enable_c_log = print_c
+                        # )
+                
+                Xu, Yu = self.clause_bank.produce_autoencoder_from_clauses(
+                    target_true_p=self.feature_true_probability[self.output_active[i]],
+                    accumulation=self.accumulation,
+                    no_of_involved_fetures = max_feature,
+                    source_clauses = source_clauses,
+                    source_clauses_weights = source_clauses_weights,
+                    source_no_columns = int(source_max_columns),
+                    negative_weight_clause = negative_weight_clause,
+                    enable_c_log = print_c
+                )
 
-                        Xu, Yu = self.clause_bank.produce_autoencoder_combined(
-                            target_true_p=self.feature_true_probability[self.output_active[i]],
-                            accumulation=self.accumulation,
-                            no_of_involved_fetures = max_feature,
-                            source_clauses = source_clauses,
-                            source_clauses_weights = source_clauses_weights,
-                            source_no_columns = int(source_max_columns),
-                            destination_clauses = destination_clauses,
-                            destination_clauses_weights = destination_clauses_weights,
-                            destination_no_columns = int(destination_max_columns),
-                            negative_weight_clause = negative_weight_clause,
-                            enable_c_log = print_c
-                        )
+                ta_chunk = self.output_active[i] // 32
+                chunk_pos = self.output_active[i] % 32
+                copy_literal_active_ta_chunk = literal_active[ta_chunk]
 
-                        ta_chunk = self.output_active[i] // 32
-                        chunk_pos = self.output_active[i] % 32
-                        copy_literal_active_ta_chunk = literal_active[ta_chunk]
+                if self.feature_negation:
+                    ta_chunk_negated = (self.output_active[i] + self.clause_bank.number_of_features) // 32
+                    chunk_pos_negated = (self.output_active[i] + self.clause_bank.number_of_features) % 32
+                    copy_literal_active_ta_chunk_negated = literal_active[ta_chunk_negated]
+                    literal_active[ta_chunk_negated] &= ~(1 << chunk_pos_negated)
 
-                        if self.feature_negation:
-                            ta_chunk_negated = (self.output_active[i] + self.clause_bank.number_of_features) // 32
-                            chunk_pos_negated = (self.output_active[i] + self.clause_bank.number_of_features) % 32
-                            copy_literal_active_ta_chunk_negated = literal_active[ta_chunk_negated]
-                            literal_active[ta_chunk_negated] &= ~(1 << chunk_pos_negated)
+                literal_active[ta_chunk] &= ~(1 << chunk_pos)
 
-                        literal_active[ta_chunk] &= ~(1 << chunk_pos)
+                self.update(i, Yu, Xu, update_clause * clause_active, literal_active)
 
-                        self.update(i, Yu, Xu, update_clause * clause_active, literal_active)
-
-                        if self.feature_negation:
-                            literal_active[ta_chunk_negated] = copy_literal_active_ta_chunk_negated
-                        literal_active[ta_chunk] = copy_literal_active_ta_chunk      
+                if self.feature_negation:
+                    literal_active[ta_chunk_negated] = copy_literal_active_ta_chunk_negated
+                literal_active[ta_chunk] = copy_literal_active_ta_chunk      
 
         return
 
