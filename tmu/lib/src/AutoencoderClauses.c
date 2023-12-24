@@ -140,7 +140,7 @@ void produce_example_by_clauses(
 							}
 						} while (featureExists);
 						myPrint(file, "F(%d) ",feature);
-						store_feature_to_X(feature, X, number_of_cols,0);
+						store_feature_to_X(feature, number_of_cols, X,0);
 						r++;
 					}
 					a++;
