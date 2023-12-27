@@ -410,7 +410,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                 Xu, Yu = self.clause_bank.produce_autoencoder_from_clauses(
                     target_true_p=self.feature_true_probability[self.output_active[i]],
                     accumulation=self.accumulation,
-                    no_of_involved_fetures = max_feature,
+                    number_of_features = max_feature,
                     source_clauses = source_clauses,
                     source_clauses_weights = source_clauses_weights,
                     source_no_columns = int(source_max_columns),

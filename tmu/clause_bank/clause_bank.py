@@ -491,7 +491,7 @@ class ClauseBank(BaseClauseBank):
             self,
             target_true_p,
             accumulation,
-            no_of_involved_fetures,
+            number_of_features,
             source_clauses,
             source_clauses_weights,
             source_no_columns,
@@ -503,7 +503,7 @@ class ClauseBank(BaseClauseBank):
             source_clauses_weights_array = np.ascontiguousarray(source_clauses_weights, dtype=np.int32)
             target_value = random.randint(0, 1)
 
-            lib.produce_example_by_clauses(int(no_of_involved_fetures),
+            lib.produce_example_by_clauses(int(number_of_features),
                                                 ffi.cast("unsigned int *", X.ctypes.data),
                                                 int(target_value),
                                                 int(accumulation),

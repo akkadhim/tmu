@@ -28,13 +28,13 @@ unsigned int compareints(const void * a, const void * b)
   return(*(unsigned int*)a- *(unsigned int*)b);
 }
 
-void store_feature_to_X(int feature, int number_of_cols, unsigned int *X, int output_pos)
+void store_feature_to_X(int feature, int number_of_features, unsigned int *X, int output_pos)
 {
     int chunk_nr = feature / 32;
     int chunk_pos = feature % 32;
     X[output_pos + chunk_nr] |= (1U << chunk_pos);
 
-    chunk_nr = (feature + number_of_cols) / 32;
-    chunk_pos = (feature + number_of_cols) % 32;
+    chunk_nr = (feature + number_of_features) / 32;
+    chunk_pos = (feature + number_of_features) % 32;
     X[output_pos + chunk_nr] &= ~(1U << chunk_pos);
 }
