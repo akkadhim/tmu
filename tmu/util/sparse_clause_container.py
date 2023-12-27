@@ -77,3 +77,4 @@ class SparseClauseContainer:
     def clear(self):
         self._d.clear()
         self._classes.clear()
+

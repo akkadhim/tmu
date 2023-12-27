@@ -15,6 +15,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import random
 from tabulate import tabulate
 from tmu.weight_bank import WeightBank
 from tmu.models.base import MultiWeightBankMixin, SingleClauseBankMixin, TMBaseModel
@@ -115,12 +116,18 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             Y,
             encoded_X,
             clause_active,
-            literal_active
+            literal_active,
+            Y_weight = None
     ):
         all_literal_active = (np.zeros(self.clause_bank.number_of_ta_chunks, dtype=np.uint32) | ~0).astype(np.uint32)
         clause_outputs = self.clause_bank.calculate_clause_outputs_update(all_literal_active, encoded_X, 0)
 
-        class_sum = np.dot(clause_active * self.weight_banks[target_output].get_weights(), clause_outputs).astype(
+        if Y_weight != None:
+            self.weight_banks[target_output].set_weight(Y_weight)
+
+        target_output_weights = self.weight_banks[target_output].get_weights()
+
+        class_sum = np.dot(clause_active * target_output_weights, clause_outputs).astype(
             np.int32)
         class_sum = np.clip(class_sum, -self.T, self.T)
 
@@ -133,7 +140,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
 
             self.clause_bank.type_i_feedback(
                 update_p=update_p * self.type_i_p,
-                clause_active=clause_active * (self.weight_banks[target_output].get_weights() >= 0),
+                clause_active=clause_active * (target_output_weights >= 0),
                 literal_active=literal_active,
                 encoded_X=encoded_X,
                 e=0
@@ -141,7 +148,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
 
             self.clause_bank.type_ii_feedback(
                 update_p=update_p * self.type_ii_p,
-                clause_active=clause_active * (self.weight_banks[target_output].get_weights() < 0),
+                clause_active=clause_active * (target_output_weights < 0),
                 literal_active=literal_active,
                 encoded_X=encoded_X,
                 e=0
@@ -157,7 +164,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             if self.type_iii_feedback and type_iii_feedback_selection == 0:
                 self.clause_bank.type_iii_feedback(
                     update_p=update_p,
-                    clause_active=clause_active * (self.weight_banks[target_output].get_weights() >= 0),
+                    clause_active=clause_active * (target_output_weights >= 0),
                     literal_active=literal_active,
                     encoded_X=encoded_X,
                     e=0,
@@ -166,7 +173,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
 
                 self.clause_bank.type_iii_feedback(
                     update_p=update_p,
-                    clause_active=clause_active * (self.weight_banks[target_output].get_weights() < 0),
+                    clause_active=clause_active * (target_output_weights < 0),
                     literal_active=literal_active,
                     encoded_X=encoded_X,
                     e=0,
@@ -179,7 +186,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
 
             self.clause_bank.type_i_feedback(
                 update_p=update_p * self.type_i_p,
-                clause_active=clause_active * (self.weight_banks[target_output].get_weights() < 0),
+                clause_active=clause_active * (target_output_weights < 0),
                 literal_active=literal_active,
                 encoded_X=encoded_X,
                 e=0
@@ -187,7 +194,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
 
             self.clause_bank.type_ii_feedback(
                 update_p=update_p * self.type_ii_p,
-                clause_active=clause_active * (self.weight_banks[target_output].get_weights() >= 0),
+                clause_active=clause_active * (target_output_weights >= 0),
                 literal_active=literal_active,
                 encoded_X=encoded_X,
                 e=0
@@ -203,7 +210,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             if self.type_iii_feedback and type_iii_feedback_selection == 1:
                 self.clause_bank.type_iii_feedback(
                     update_p=update_p,
-                    clause_active=clause_active * (self.weight_banks[target_output].get_weights() < 0),
+                    clause_active=clause_active * (target_output_weights < 0),
                     literal_active=literal_active,
                     encoded_X=encoded_X,
                     e=0,
@@ -212,7 +219,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
 
                 self.clause_bank.type_iii_feedback(
                     update_p=update_p,
-                    clause_active=clause_active * (self.weight_banks[target_output].get_weights() >= 0),
+                    clause_active=clause_active * (target_output_weights >= 0),
                     literal_active=literal_active,
                     encoded_X=encoded_X,
                     e=0,
@@ -389,10 +396,32 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
 
             for i in class_index:
                 source_clauses, source_clauses_weights, source_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = i)
+                for j in range(len(source_clauses_weights)):
+                    X = np.ascontiguousarray(np.empty(int(self.number_of_ta_chunks), dtype=np.uint32))
+                    for feature in source_clauses[j]:
+                        chunk_nr = feature // 32
+                        chunk_pos = feature % 32
+                        X[chunk_nr] |= (1 << chunk_pos)
+
+                        chunk_nr = (feature + number_of_features) // 32
+                        chunk_pos = (feature + number_of_features) % 32
+                        X[chunk_nr] &= ~(1 << chunk_pos)
+                    Xu = X.reshape((1, -1))
+
+                    if source_clauses_weights[j] > 0:
+                        Yu = 1
+                    else:
+                        Yu = 0
 
                 # for j in class_index:
-                    # if i != j:
-                        # destination_clauses, destination_clauses_weights, destination_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = j)
+                #     if i != j:
+                #         destination_clauses, destination_clauses_weights, destination_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = j)
+                #         for clause_index in self.number_of_clauses:
+                #             Yu = random.randint(0, 1)
+                #             if Yu == 1:
+
+
+                        
                         # Xu, Yu = self.clause_bank.produce_autoencoder_combined(
                         #     target_true_p=self.feature_true_probability[self.output_active[i]],
                         #     accumulation=self.accumulation,
@@ -406,35 +435,34 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                         #     negative_weight_clause = negative_weight_clause,
                         #     enable_c_log = print_c
                         # )
-                
-                Xu, Yu = self.clause_bank.produce_autoencoder_from_clauses(
-                    target_true_p=self.feature_true_probability[self.output_active[i]],
-                    accumulation=self.accumulation,
-                    number_of_features = max_feature,
-                    source_clauses = source_clauses,
-                    source_clauses_weights = source_clauses_weights,
-                    source_no_columns = int(source_max_columns),
-                    negative_weight_clause = negative_weight_clause,
-                    enable_c_log = print_c
-                )
+                        # Xu, Yu = self.clause_bank.produce_autoencoder_from_clauses(
+                        #     target_true_p=self.feature_true_probability[self.output_active[i]],
+                        #     accumulation=self.accumulation,
+                        #     number_of_features = max_feature,
+                        #     source_clauses = source_clauses,
+                        #     source_clauses_weights = source_clauses_weights,
+                        #     source_no_columns = int(source_max_columns),
+                        #     negative_weight_clause = negative_weight_clause,
+                        #     enable_c_log = print_c
+                        # )
 
-                ta_chunk = self.output_active[i] // 32
-                chunk_pos = self.output_active[i] % 32
-                copy_literal_active_ta_chunk = literal_active[ta_chunk]
+                    ta_chunk = self.output_active[i] // 32
+                    chunk_pos = self.output_active[i] % 32
+                    copy_literal_active_ta_chunk = literal_active[ta_chunk]
 
-                if self.feature_negation:
-                    ta_chunk_negated = (self.output_active[i] + self.clause_bank.number_of_features) // 32
-                    chunk_pos_negated = (self.output_active[i] + self.clause_bank.number_of_features) % 32
-                    copy_literal_active_ta_chunk_negated = literal_active[ta_chunk_negated]
-                    literal_active[ta_chunk_negated] &= ~(1 << chunk_pos_negated)
+                    if self.feature_negation:
+                        ta_chunk_negated = (self.output_active[i] + self.clause_bank.number_of_features) // 32
+                        chunk_pos_negated = (self.output_active[i] + self.clause_bank.number_of_features) % 32
+                        copy_literal_active_ta_chunk_negated = literal_active[ta_chunk_negated]
+                        literal_active[ta_chunk_negated] &= ~(1 << chunk_pos_negated)
 
-                literal_active[ta_chunk] &= ~(1 << chunk_pos)
+                    literal_active[ta_chunk] &= ~(1 << chunk_pos)
 
-                self.update(i, Yu, Xu, update_clause * clause_active, literal_active)
+                    self.update(i, Yu, Xu, update_clause * clause_active, literal_active,Y_weight = source_clauses_weights[j])
 
-                if self.feature_negation:
-                    literal_active[ta_chunk_negated] = copy_literal_active_ta_chunk_negated
-                literal_active[ta_chunk] = copy_literal_active_ta_chunk      
+                    if self.feature_negation:
+                        literal_active[ta_chunk_negated] = copy_literal_active_ta_chunk_negated
+                    literal_active[ta_chunk] = copy_literal_active_ta_chunk      
 
         return
 
