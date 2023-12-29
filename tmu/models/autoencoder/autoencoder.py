@@ -117,15 +117,17 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             encoded_X,
             clause_active,
             literal_active,
-            Y_weight = None
+            weights = None
     ):
         all_literal_active = (np.zeros(self.clause_bank.number_of_ta_chunks, dtype=np.uint32) | ~0).astype(np.uint32)
         clause_outputs = self.clause_bank.calculate_clause_outputs_update(all_literal_active, encoded_X, 0)
 
-        if Y_weight != None:
-            self.weight_banks[target_output].set_weight(Y_weight)
-
         target_output_weights = self.weight_banks[target_output].get_weights()
+        
+        if weights != None:
+            for i, target_weight in enumerate(target_output_weights):
+                target_output_weights[i] = weights[i]
+            # self.weight_banks[target_output].set_weight(Y_weight)
 
         class_sum = np.dot(clause_active * target_output_weights, clause_outputs).astype(
             np.int32)
@@ -393,25 +395,32 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             average_absolute_weights /= self.number_of_classes
             update_clause = self.rng.random(self.number_of_clauses) <= (
                     self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
+            
+            number_of_ta_chunks = int(((max_feature * 2) - 1) / 32 + 1)
 
             for i in class_index:
                 source_clauses, source_clauses_weights, source_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = i)
-                for j in range(len(source_clauses_weights)):
-                    X = np.ascontiguousarray(np.empty(int(self.number_of_ta_chunks), dtype=np.uint32))
-                    for feature in source_clauses[j]:
-                        chunk_nr = feature // 32
-                        chunk_pos = feature % 32
-                        X[chunk_nr] |= (1 << chunk_pos)
+                X = np.ascontiguousarray(np.empty(number_of_ta_chunks, dtype=np.uint32))
+                Yu = random.randint(0, 1)
+                weights_indeces = []
+                if Yu == 1:
+                    for index, weight in enumerate(source_clauses_weights):
+                        if weight > 0:
+                            weights_indeces.append(index)
+                else:
+                    for index, weight in enumerate(source_clauses_weights):
+                        if weight <= 0:
+                            weights_indeces.append(index)
 
-                        chunk_nr = (feature + number_of_features) // 32
-                        chunk_pos = (feature + number_of_features) % 32
-                        X[chunk_nr] &= ~(1 << chunk_pos)
-                    Xu = X.reshape((1, -1))
+                weights = []
+                for j in range(self.number_of_clauses):
+                    random_index = random.choice(weights_indeces)
+                    weights.append(source_clauses_weights[random_index])
+                    self.store_to_X(number_of_features, source_clauses[random_index], X)
 
-                    if source_clauses_weights[j] > 0:
-                        Yu = 1
-                    else:
-                        Yu = 0
+                Xu = X.reshape((1, -1))
+                if(ex > 0):
+                    weights = None
 
                 # for j in class_index:
                 #     if i != j:
@@ -446,25 +455,35 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                         #     enable_c_log = print_c
                         # )
 
-                    ta_chunk = self.output_active[i] // 32
-                    chunk_pos = self.output_active[i] % 32
-                    copy_literal_active_ta_chunk = literal_active[ta_chunk]
+                ta_chunk = self.output_active[i] // 32
+                chunk_pos = self.output_active[i] % 32
+                copy_literal_active_ta_chunk = literal_active[ta_chunk]
 
-                    if self.feature_negation:
-                        ta_chunk_negated = (self.output_active[i] + self.clause_bank.number_of_features) // 32
-                        chunk_pos_negated = (self.output_active[i] + self.clause_bank.number_of_features) % 32
-                        copy_literal_active_ta_chunk_negated = literal_active[ta_chunk_negated]
-                        literal_active[ta_chunk_negated] &= ~(1 << chunk_pos_negated)
+                if self.feature_negation:
+                    ta_chunk_negated = (self.output_active[i] + self.clause_bank.number_of_features) // 32
+                    chunk_pos_negated = (self.output_active[i] + self.clause_bank.number_of_features) % 32
+                    copy_literal_active_ta_chunk_negated = literal_active[ta_chunk_negated]
+                    literal_active[ta_chunk_negated] &= ~(1 << chunk_pos_negated)
 
-                    literal_active[ta_chunk] &= ~(1 << chunk_pos)
+                literal_active[ta_chunk] &= ~(1 << chunk_pos)
 
-                    self.update(i, Yu, Xu, update_clause * clause_active, literal_active,Y_weight = source_clauses_weights[j])
+                self.update(i, Yu, Xu, update_clause * clause_active, literal_active, weights = weights)
 
-                    if self.feature_negation:
-                        literal_active[ta_chunk_negated] = copy_literal_active_ta_chunk_negated
-                    literal_active[ta_chunk] = copy_literal_active_ta_chunk      
+                if self.feature_negation:
+                    literal_active[ta_chunk_negated] = copy_literal_active_ta_chunk_negated
+                literal_active[ta_chunk] = copy_literal_active_ta_chunk      
 
         return
+
+    def store_to_X(self, number_of_features, clause, X):
+        for feature in clause:
+            chunk_nr = feature // 32
+            chunk_pos = feature % 32
+            X[chunk_nr] |= (1 << chunk_pos)
+
+            chunk_nr = (feature + number_of_features) // 32
+            chunk_pos = (feature + number_of_features) % 32
+            X[chunk_nr] &= ~(1 << chunk_pos)
 
     def prepare_clauses(self, target_words_clauses, print_python, target_word):
         clauses = []
