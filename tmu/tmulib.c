@@ -1906,7 +1906,6 @@ void produce_example_by_combined_clauses(
 
 		unsigned int number_of_literal_chunks = (number_of_literals-1)/32 + 1;
 
-		// Initialize example vector X
 		memset(X, 0, number_of_literal_chunks * sizeof(unsigned int));
 		for (int k = number_of_features; k < number_of_literals; ++k) {
 			int chunk_nr = k / 32;
@@ -2028,7 +2027,6 @@ void produce_example_by_clauses(
 
 		unsigned int number_of_literal_chunks = (number_of_literals-1)/32 + 1;
 
-		// Initialize example vector X
 		memset(X, 0, number_of_literal_chunks * sizeof(unsigned int));
 		for (int k = number_of_features; k < number_of_literals; ++k) {
 			int chunk_nr = k / 32;
