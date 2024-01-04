@@ -262,9 +262,9 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             involved_datasets=[],
             shuffle=True, 
             proportional_ds = False,
+            print_python = False,
             *kwargs
             ):
-        print("Starting the fitting...")
         X_csr = csr_matrix(X.reshape(X.shape[0], -1))
         X_csc = csc_matrix(X.reshape(X.shape[0], -1)).sorted_indices()
         self.init(X_csr, Y=None)
@@ -288,15 +288,14 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             else:
                 examples = int(number_of_examples / number_of_experts)
             examples_per_expert.append(examples)
-        print(examples_per_expert) 
 
         if number_of_experts > 1:
-            print("Number of Experts = %s" % number_of_experts)
+            self.custom_print(print_python,"Number of Experts = %s" % number_of_experts)
         expert_start_index = 0
         expert_end_index=0
         ex = 0
         for expert in examples_per_expert:
-            print("Running experts: %d, with number of examples:%d" % (ex+1,expert))
+            self.custom_print(print_python,"Running experts: %d, with number of examples:%d" % (ex+1,expert))
             if(number_of_experts > 1):
                 expert_start_index = involved_datasets[ex][1]
                 expert_end_index = involved_datasets[ex][2]
@@ -378,8 +377,8 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                     if feature > max_feature:
                         max_feature = feature
 
-        print("Count of all related_literals:", literals)
-        print("Maximum feature:", max_feature)
+        self.custom_print(print_python,"Count of all related_literals:", literals)
+        self.custom_print(print_python,"Maximum feature:", max_feature)
 
         X_csc = csr_matrix((1, max_feature), dtype=np.int64)
         self.init(X=X_csc, Y=None)
@@ -500,9 +499,13 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
         if print_python:
             header = [f"Column {i}" for i in range(1, max_columns + 1)]
             table = [row for row in clauses]
-            print(tabulate(table, headers=header, tablefmt="grid"))
+            self.custom_print(print_python,tabulate(table, headers=header, tablefmt="grid"))
 
         return clauses,clauses_weights,max_columns
+
+    def custom_print(enabled ,*args, **kwargs):
+        if enabled:
+            print(*args, **kwargs)
 
     def predict(self, X, **kwargs):
         X_csr = csr_matrix(X.reshape(X.shape[0], -1))
