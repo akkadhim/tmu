@@ -420,6 +420,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                             self.update_from_clauses(clause_active, literal_active, i, update_clause, Xu, Yu, weights)      
                 else:
                     if weight_insertion:
+                        weights = []
                         number_of_ta_chunks = int(((max_feature * 2) - 1) / 32 + 1)
                         X = np.ascontiguousarray(np.empty(number_of_ta_chunks, dtype=np.uint32))
                         Yu = random.randint(0, 1)
