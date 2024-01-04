@@ -503,7 +503,8 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
 
         return clauses,clauses_weights,max_columns
 
-    def custom_print(enabled ,*args, **kwargs):
+    def custom_print(*args, **kwargs):
+        enabled = kwargs.pop('enabled', False)
         if enabled:
             print(*args, **kwargs)
 
