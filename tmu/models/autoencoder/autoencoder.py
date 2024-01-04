@@ -399,6 +399,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             for i in class_index:
                 source_clauses, source_clauses_weights, source_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = i)
 
+                weights = None
                 if cross_accumlation:
                     for j in class_index:
                         if i != j:
@@ -422,7 +423,6 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                         number_of_ta_chunks = int(((max_feature * 2) - 1) / 32 + 1)
                         X = np.ascontiguousarray(np.empty(number_of_ta_chunks, dtype=np.uint32))
                         Yu = random.randint(0, 1)
-                        weights = []
                         weights_indeces = []
                         if Yu == 1:
                             for index, weight in enumerate(source_clauses_weights):
