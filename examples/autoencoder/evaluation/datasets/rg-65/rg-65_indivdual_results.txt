@@ -1,0 +1,7 @@
+Loading dataset: rg-65
+Individual run for target word: cord
+Epochs: 25
+Example: 100
+Target words: 23
+Accumulation: 1
+No of features: 10000
