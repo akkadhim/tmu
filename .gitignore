@@ -141,3 +141,4 @@ examples/autoencoder/jupyter/bbc/
 examples/autoencoder/jupyter/result/
 examples/autoencoder/evaluation/vectorizer_X.pickle
 examples/autoencoder/evaluation/X.pickle
+examples/autoencoder/evaluation/datasets/
