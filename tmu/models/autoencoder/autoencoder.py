@@ -263,6 +263,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             shuffle=True, 
             proportional_ds = False,
             print_python = False,
+            print_c = False,
             *kwargs
             ):
         X_csr = csr_matrix(X.reshape(X.shape[0], -1))
@@ -319,7 +320,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                                                                     random_per_category = random_per_category,
                                                                     expert_start_index=expert_start_index,
                                                                     expert_end_index=expert_end_index,
-                                                                    enable_c_log=True)         
+                                                                    enable_c_log=print_c)         
                 for i in class_index:
                     (target, encoded_X) = Yu[i], Xu[i].reshape((1, -1))
 
@@ -363,20 +364,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
 
         #clause = weight,[feature1, feature2, ...]
 
-        literals = 0
-        max_feature = number_of_features
-        for target in target_words_clauses:
-            target_word_clauses = target[1]
-            for clause in target_word_clauses:
-                related_literals = clause[1]
-                literals += len(related_literals)
-                
-                for feature in related_literals:
-                    if feature >= number_of_features:
-                        feature = -1 * (feature - number_of_features)
-                    if feature > max_feature:
-                        max_feature = feature
-
+        max_feature, literals = self.calc_max_no_features(number_of_features, target_words_clauses)
         self.custom_print(print_python,"Count of all related_literals:", literals)
         self.custom_print(print_python,"Maximum feature:", max_feature)
 
@@ -455,6 +443,71 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                         self.update_from_clauses(clause_active, literal_active, i, update_clause, Xu, Yu, weights)      
 
         return
+
+    def clauses_pairs_fit(
+            self, 
+            number_of_examples,
+            number_of_features,
+            target_words_clauses,
+            target_words_pairs,
+            negative_weight_clause = True,
+            print_python = False,
+            print_c = False
+            ):
+        
+        max_feature = self.calc_max_no_features(number_of_features, target_words_clauses, print_python)
+        X_csc = csr_matrix((1, max_feature), dtype=np.int64)
+        self.init(X=X_csc, Y=None)
+        clause_active = self.activate_clauses()
+        literal_active = self.activate_literals()
+        class_index = np.arange(self.number_of_classes, dtype=np.uint32)
+
+        for ex in range(number_of_examples):
+            self.rng.shuffle(class_index)
+
+            average_absolute_weights = np.zeros(self.number_of_clauses, dtype=np.float32)
+            for i in class_index:
+                average_absolute_weights += np.absolute(self.weight_banks[i].get_weights())
+            average_absolute_weights /= self.number_of_classes
+            update_clause = self.rng.random(self.number_of_clauses) <= (
+                    self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
+
+            for source, destination in target_words_pairs:
+                source_clauses, source_clauses_weights, source_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = source)
+                destination_clauses, destination_clauses_weights, destination_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = destination)
+                Xu, Yu = self.clause_bank.produce_autoencoder_combined(
+                    target_true_p=self.feature_true_probability[self.output_active[i]],
+                    accumulation=self.accumulation,
+                    no_of_involved_fetures = max_feature,
+                    source_clauses = source_clauses,
+                    source_clauses_weights = source_clauses_weights,
+                    source_no_columns = int(source_max_columns),
+                    destination_clauses = destination_clauses,
+                    destination_clauses_weights = destination_clauses_weights,
+                    destination_no_columns = int(destination_max_columns),
+                    negative_weight_clause = negative_weight_clause,
+                    enable_c_log = print_c
+                )        
+                self.update_from_clauses(clause_active, literal_active, i, update_clause, Xu, Yu, weights = None)      
+        return
+
+    def calc_max_no_features(self, number_of_features, target_words_clauses, print_python):
+        literals = 0
+        max_feature = number_of_features
+        for target in target_words_clauses:
+            target_word_clauses = target[1]
+            for clause in target_word_clauses:
+                related_literals = clause[1]
+                literals += len(related_literals)
+                
+                for feature in related_literals:
+                    if feature >= number_of_features:
+                        feature = -1 * (feature - number_of_features)
+                    if feature > max_feature:
+                        max_feature = feature
+        self.custom_print(print_python,"Count of all related_literals:", literals)
+        self.custom_print(print_python,"Maximum feature:", max_feature)
+        return max_feature
 
     def update_from_clauses(self, clause_active, literal_active, i, update_clause, Xu, Yu, weights):
         ta_chunk = self.output_active[i] // 32
