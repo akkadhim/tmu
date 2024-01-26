@@ -364,10 +364,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
 
         #clause = weight,[feature1, feature2, ...]
 
-        max_feature, literals = self.calc_max_no_features(number_of_features, target_words_clauses, print_python)
-        self.custom_print(print_python,"Count of all related_literals:", literals)
-        self.custom_print(print_python,"Maximum feature:", max_feature)
-
+        max_feature = self.calc_max_no_features(number_of_features, target_words_clauses, print_python)
         X_csc = csr_matrix((1, max_feature), dtype=np.int64)
         self.init(X=X_csc, Y=None)
         clause_active = self.activate_clauses()
