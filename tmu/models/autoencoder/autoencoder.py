@@ -457,6 +457,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
         self.init(X=X_csc, Y=None)
         clause_active = self.activate_clauses()
         
+        literal_active = np.zeros(self.clause_bank.number_of_ta_chunks, dtype=np.uint32)
         for target in target_words_clauses:
             target_word_clauses = target[1]
             for clause in target_word_clauses:
@@ -466,7 +467,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                         feature = -1 * (feature - number_of_features)
                     ta_chunk = feature // 32
                     chunk_pos = feature % 32
-                    self.literal_active[ta_chunk] |= (1 << chunk_pos)
+                    literal_active[ta_chunk] |= (1 << chunk_pos)
 
         class_index = np.arange(self.number_of_classes, dtype=np.uint32)
 
