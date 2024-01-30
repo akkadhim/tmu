@@ -461,6 +461,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
 
         for ex in range(number_of_examples):
             self.rng.shuffle(class_index)
+            self.rng.shuffle(target_words_pairs)
 
             average_absolute_weights = np.zeros(self.number_of_clauses, dtype=np.float32)
             for i in class_index:
