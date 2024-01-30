@@ -70,24 +70,15 @@ void produce_example_by_combined_clauses(
 			myPrint(file, "and selected positive clauses is ");
 			int a = 0;
 			while (a < accumulation) {
-				bool positive_clause = false;
-
 				int random_source_index = (rand() % source_rows);
-				if (source_clauses_weights[random_source_index] > 0)
+				int random_destination_index = (rand() % destination_rows);
+				if (source_clauses_weights[random_source_index] > 0 
+					&& destination_clauses_weights[random_destination_index] > 0)
 				{
+					myPrint(file, "S(%d) ",random_source_index);
+					myPrint(file, "D(%d) -- ",random_destination_index);
 					store_clause_to_X(random_source_index, source_columns, source_clauses,number_of_cols,X);
-					int random_destination_index = (rand() % destination_rows);
-					if (destination_clauses_weights[random_destination_index] > 0)
-					{
-						store_clause_to_X(random_destination_index, destination_columns, destination_clauses,number_of_cols,X);
-						
-						myPrint(file, "S(%d) ",random_source_index);
-						myPrint(file, "D(%d) -- ",random_destination_index);
-						positive_clause = true;
-					}
-				}
-				if (positive_clause)
-				{
+					store_clause_to_X(random_destination_index, destination_columns, destination_clauses,number_of_cols,X);
 					a++;
 				}
 			}
@@ -96,24 +87,15 @@ void produce_example_by_combined_clauses(
 			if(negative_weight_clause){
 				int a = 0;
 				while (a < accumulation) {
-					bool negative_clause = false;
-
 					int random_source_index = (rand() % source_rows);
-					if (source_clauses_weights[random_source_index] < 0)
+					int random_destination_index = (rand() % destination_rows);
+					if (source_clauses_weights[random_source_index] < 0 
+						&& destination_clauses_weights[random_destination_index] < 0)
 					{
 						store_clause_to_X(random_source_index, source_columns, source_clauses,number_of_cols,X);
-						int random_destination_index = (rand() % destination_rows);
-						if (destination_clauses_weights[random_destination_index] < 0)
-						{
-							store_clause_to_X(random_destination_index, destination_columns, destination_clauses,number_of_cols,X);
-							
-							myPrint(file, "S(%d) ",random_source_index);
-							myPrint(file, "D(%d) -- ",random_destination_index);
-							negative_clause = true;
-						}
-					}
-					if (negative_clause)
-					{
+						store_clause_to_X(random_destination_index, destination_columns, destination_clauses,number_of_cols,X);
+						myPrint(file, "S(%d) ",random_source_index);
+						myPrint(file, "D(%d) -- ",random_destination_index);
 						a++;
 					}
 				}
