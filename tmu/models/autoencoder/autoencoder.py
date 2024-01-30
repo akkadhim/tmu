@@ -486,7 +486,8 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                     negative_weight_clause = negative_weight_clause,
                     enable_c_log = print_c
                 )        
-                self.update_from_clauses(clause_active, literal_active, i, update_clause, Xu, Yu, weights = None)      
+                self.update_from_clauses(clause_active, literal_active, source, update_clause, Xu, Yu, weights = None)      
+                self.update_from_clauses(clause_active, literal_active, destination, update_clause, Xu, Yu, weights = None)      
         return
 
     def calc_max_no_features(self, number_of_features, target_words_clauses, print_python):
