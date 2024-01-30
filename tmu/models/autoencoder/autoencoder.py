@@ -402,7 +402,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                                 negative_weight_clause = negative_weight_clause,
                                 enable_c_log = print_c
                             )        
-                            self.update_from_clauses(update_clause * clause_active, literal_active, i, update_clause, Xu, Yu, weights)      
+                            self.update_from_clauses(update_clause * clause_active, literal_active, i, Xu, Yu, weights)      
                 else:
                     if weight_insertion:
                         weights = []
@@ -425,7 +425,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                         Xu = X.reshape((1, -1))
                         if(ex > 0):
                             weights = None
-                        self.update_from_clauses(update_clause * clause_active, literal_active, i, update_clause, Xu, Yu, weights)      
+                        self.update_from_clauses(update_clause * clause_active, literal_active, i, Xu, Yu, weights)      
                     else:
                         Xu, Yu = self.clause_bank.produce_autoencoder_from_clauses(
                             target_true_p=self.feature_true_probability[self.output_active[i]],
@@ -437,7 +437,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                             negative_weight_clause = negative_weight_clause,
                             enable_c_log = print_c
                         )
-                        self.update_from_clauses(update_clause * clause_active, literal_active, i, update_clause, Xu, Yu, weights)      
+                        self.update_from_clauses(update_clause * clause_active, literal_active, i, Xu, Yu, weights)      
 
         return
 
@@ -486,8 +486,8 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                     negative_weight_clause = negative_weight_clause,
                     enable_c_log = print_c
                 )        
-                self.update_from_clauses(update_clause * clause_active, literal_active, source, Xu, Yu, weights = None)      
-                self.update_from_clauses(update_clause * clause_active, literal_active, destination, Xu, Yu, weights = None)      
+                self.update_from_clauses(clause_active, literal_active, source, Xu, Yu, weights = None)      
+                self.update_from_clauses(clause_active, literal_active, destination, Xu, Yu, weights = None)      
         return
 
     def calc_max_no_features(self, number_of_features, target_words_clauses, print_python):
