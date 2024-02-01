@@ -291,12 +291,12 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             examples_per_expert.append(examples)
 
         if number_of_experts > 1:
-            self.custom_print(print_python,"Number of Experts = %s" % number_of_experts)
+            self.custom_print("Number of Experts = %s" % number_of_experts, enabled = print_python)
         expert_start_index = 0
         expert_end_index=0
         ex = 0
         for expert in examples_per_expert:
-            self.custom_print(print_python,"Running experts: %d, with number of examples:%d" % (ex+1,expert))
+            self.custom_print("Running experts: %d, with number of examples:%d" % (ex+1,expert), enabled = print_python)
             if(number_of_experts > 1):
                 expert_start_index = involved_datasets[ex][1]
                 expert_end_index = involved_datasets[ex][2]
@@ -459,17 +459,17 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
         literal_active = self.activate_literals()
         class_index = np.arange(self.number_of_classes, dtype=np.uint32)
 
+        self.rng.shuffle(class_index)
+        self.rng.shuffle(target_words_pairs)
+
+        average_absolute_weights = np.zeros(self.number_of_clauses, dtype=np.float32)
+        for i in class_index:
+            average_absolute_weights += np.absolute(self.weight_banks[i].get_weights())
+        average_absolute_weights /= self.number_of_classes
+        update_clause = self.rng.random(self.number_of_clauses) <= (
+                self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
+        
         for ex in range(number_of_examples):
-            self.rng.shuffle(class_index)
-            self.rng.shuffle(target_words_pairs)
-
-            average_absolute_weights = np.zeros(self.number_of_clauses, dtype=np.float32)
-            for i in class_index:
-                average_absolute_weights += np.absolute(self.weight_banks[i].get_weights())
-            average_absolute_weights /= self.number_of_classes
-            update_clause = self.rng.random(self.number_of_clauses) <= (
-                    self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
-
             for source, destination in target_words_pairs:
                 source_clauses, source_clauses_weights, source_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = source)
                 destination_clauses, destination_clauses_weights, destination_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = destination)
@@ -486,8 +486,21 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                     negative_weight_clause = negative_weight_clause,
                     enable_c_log = print_c
                 )        
-                self.update_from_clauses(clause_active, literal_active, source, Xu, Yu, weights = None)      
-                self.update_from_clauses(clause_active, literal_active, destination, Xu, Yu, weights = None)      
+                self.update_from_clauses(clause_active * update_clause, literal_active, source, Xu, Yu, weights = None)     
+                Xu, Yu = self.clause_bank.produce_autoencoder_combined(
+                    target_true_p=self.feature_true_probability[self.output_active[i]],
+                    accumulation=self.accumulation,
+                    no_of_involved_fetures = max_feature,
+                    source_clauses = destination_clauses,
+                    source_clauses_weights = destination_clauses_weights,
+                    source_no_columns = int(destination_max_columns),
+                    destination_clauses = source_clauses,
+                    destination_clauses_weights = source_clauses_weights,
+                    destination_no_columns = int(source_max_columns),
+                    negative_weight_clause = negative_weight_clause,
+                    enable_c_log = print_c
+                )         
+                self.update_from_clauses(clause_active * update_clause, literal_active, destination, Xu, Yu, weights = None)      
         return
 
     def calc_max_no_features(self, number_of_features, target_words_clauses, print_python):
@@ -504,8 +517,8 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                         feature = -1 * (feature - number_of_features)
                     if feature > max_feature:
                         max_feature = feature
-        self.custom_print(print_python,"Count of all related_literals:", literals)
-        self.custom_print(print_python,"Maximum feature:", max_feature)
+        self.custom_print("Count of all related_literals:", literals, enabled = print_python)
+        self.custom_print("Maximum feature:", max_feature, enabled = print_python)
         return max_feature
 
     def update_from_clauses(self, clause_active, literal_active, i, Xu, Yu, weights):
@@ -550,16 +563,23 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                 clause.append(0)
 
         if print_python:
-            header = [f"Column {i}" for i in range(1, max_columns + 1)]
-            table = [row for row in clauses]
-            self.custom_print(print_python,tabulate(table, headers=header, tablefmt="grid"))
+            header = ["Caluses"] + ["Weight"] + [f"Feature {i}" for i in range(1, max_columns + 1)]
+            table = [[i] + [clauses_weights[i]] + row for i, row in enumerate(clauses)]
+            self.custom_print(tabulate(table, headers=header, tablefmt="grid"), enabled = print_python)
 
         return clauses,clauses_weights,max_columns
 
     def custom_print(*args, **kwargs):
         enabled = kwargs.pop('enabled', False)
         if enabled:
-            print(*args, **kwargs)
+            for arg in args:
+                if isinstance(arg, str):
+                    print(arg, **kwargs)
+                else:
+                    try:
+                        print(arg.get_string(), **kwargs)
+                    except AttributeError:
+                        print(arg, **kwargs)
 
     def predict(self, X, **kwargs):
         X_csr = csr_matrix(X.reshape(X.shape[0], -1))
