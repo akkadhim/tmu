@@ -323,24 +323,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                                                                     enable_c_log=print_c)         
                 for i in class_index:
                     (target, encoded_X) = Yu[i], Xu[i].reshape((1, -1))
-
-                    ta_chunk = self.output_active[i] // 32
-                    chunk_pos = self.output_active[i] % 32
-                    copy_literal_active_ta_chunk = literal_active[ta_chunk]
-
-                    if self.feature_negation:
-                        ta_chunk_negated = (self.output_active[i] + self.clause_bank.number_of_features) // 32
-                        chunk_pos_negated = (self.output_active[i] + self.clause_bank.number_of_features) % 32
-                        copy_literal_active_ta_chunk_negated = literal_active[ta_chunk_negated]
-                        literal_active[ta_chunk_negated] &= ~(1 << chunk_pos_negated)
-
-                    literal_active[ta_chunk] &= ~(1 << chunk_pos)
-
-                    self.update(i, target, encoded_X, update_clause * clause_active, literal_active)        
-
-                    if self.feature_negation:
-                        literal_active[ta_chunk_negated] = copy_literal_active_ta_chunk_negated
-                    literal_active[ta_chunk] = copy_literal_active_ta_chunk
+                    self.update_from_clauses(clause_active * update_clause, literal_active, i, encoded_X, target, weights = None)      
         return
  
     def clauses_fit(
@@ -370,74 +353,71 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
         clause_active = self.activate_clauses()
         literal_active = self.activate_literals()
         class_index = np.arange(self.number_of_classes, dtype=np.uint32)
+        self.rng.shuffle(class_index)
+        average_absolute_weights = np.zeros(self.number_of_clauses, dtype=np.float32)
+        for i in class_index:
+            average_absolute_weights += np.absolute(self.weight_banks[i].get_weights())
+        average_absolute_weights /= self.number_of_classes
+        update_clause = self.rng.random(self.number_of_clauses) <= (
+                self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
 
-        for ex in range(number_of_examples):
-            self.rng.shuffle(class_index)
+        for i in class_index:
+            source_clauses, source_clauses_weights, source_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = i)
 
-            average_absolute_weights = np.zeros(self.number_of_clauses, dtype=np.float32)
-            for i in class_index:
-                average_absolute_weights += np.absolute(self.weight_banks[i].get_weights())
-            average_absolute_weights /= self.number_of_classes
-            update_clause = self.rng.random(self.number_of_clauses) <= (
-                    self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
-
-            for i in class_index:
-                source_clauses, source_clauses_weights, source_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = i)
-
-                weights = None
-                if cross_accumlation:
-                    for j in class_index:
-                        if i != j:
-                            destination_clauses, destination_clauses_weights, destination_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = j)
-                            Xu, Yu = self.clause_bank.produce_autoencoder_combined(
-                                target_true_p=self.feature_true_probability[self.output_active[i]],
-                                accumulation=self.accumulation,
-                                no_of_involved_fetures = max_feature,
-                                source_clauses = source_clauses,
-                                source_clauses_weights = source_clauses_weights,
-                                source_no_columns = int(source_max_columns),
-                                destination_clauses = destination_clauses,
-                                destination_clauses_weights = destination_clauses_weights,
-                                destination_no_columns = int(destination_max_columns),
-                                negative_weight_clause = negative_weight_clause,
-                                enable_c_log = print_c
-                            )        
-                            self.update_from_clauses(update_clause * clause_active, literal_active, i, Xu, Yu, weights)      
-                else:
-                    if weight_insertion:
-                        weights = []
-                        number_of_ta_chunks = int(((max_feature * 2) - 1) / 32 + 1)
-                        X = np.ascontiguousarray(np.empty(number_of_ta_chunks, dtype=np.uint32))
-                        Yu = random.randint(0, 1)
-                        weights_indeces = []
-                        if Yu == 1:
-                            for index, weight in enumerate(source_clauses_weights):
-                                if weight > 0:
-                                    weights_indeces.append(index)
-                        else:
-                            for index, weight in enumerate(source_clauses_weights):
-                                if weight <= 0:
-                                    weights_indeces.append(index)
-                        for j in range(self.number_of_clauses):
-                            random_index = random.choice(weights_indeces)
-                            weights.append(source_clauses_weights[random_index])
-                            self.store_to_X(number_of_features, source_clauses[random_index], X)
-                        Xu = X.reshape((1, -1))
-                        if(ex > 0):
-                            weights = None
-                        self.update_from_clauses(update_clause * clause_active, literal_active, i, Xu, Yu, weights)      
-                    else:
-                        Xu, Yu = self.clause_bank.produce_autoencoder_from_clauses(
+            weights = None
+            if cross_accumlation:
+                for j in class_index[0:number_of_examples + 1]:
+                    if i != j:
+                        destination_clauses, destination_clauses_weights, destination_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = j)
+                        Xu, Yu = self.clause_bank.produce_autoencoder_combined(
                             target_true_p=self.feature_true_probability[self.output_active[i]],
                             accumulation=self.accumulation,
-                            number_of_features = max_feature,
+                            no_of_involved_fetures = max_feature,
                             source_clauses = source_clauses,
                             source_clauses_weights = source_clauses_weights,
                             source_no_columns = int(source_max_columns),
+                            destination_clauses = destination_clauses,
+                            destination_clauses_weights = destination_clauses_weights,
+                            destination_no_columns = int(destination_max_columns),
                             negative_weight_clause = negative_weight_clause,
                             enable_c_log = print_c
-                        )
+                        )        
                         self.update_from_clauses(update_clause * clause_active, literal_active, i, Xu, Yu, weights)      
+            else:
+                if weight_insertion:
+                    weights = []
+                    number_of_ta_chunks = int(((max_feature * 2) - 1) / 32 + 1)
+                    X = np.ascontiguousarray(np.empty(number_of_ta_chunks, dtype=np.uint32))
+                    Yu = random.randint(0, 1)
+                    weights_indeces = []
+                    if Yu == 1:
+                        for index, weight in enumerate(source_clauses_weights):
+                            if weight > 0:
+                                weights_indeces.append(index)
+                    else:
+                        for index, weight in enumerate(source_clauses_weights):
+                            if weight <= 0:
+                                weights_indeces.append(index)
+                    for j in range(self.number_of_clauses):
+                        random_index = random.choice(weights_indeces)
+                        weights.append(source_clauses_weights[random_index])
+                        self.store_to_X(number_of_features, source_clauses[random_index], X)
+                    Xu = X.reshape((1, -1))
+                    if(ex > 0):
+                        weights = None
+                    self.update_from_clauses(update_clause * clause_active, literal_active, i, Xu, Yu, weights)      
+                else:
+                    Xu, Yu = self.clause_bank.produce_autoencoder_from_clauses(
+                        target_true_p=self.feature_true_probability[self.output_active[i]],
+                        accumulation=self.accumulation,
+                        number_of_features = max_feature,
+                        source_clauses = source_clauses,
+                        source_clauses_weights = source_clauses_weights,
+                        source_no_columns = int(source_max_columns),
+                        negative_weight_clause = negative_weight_clause,
+                        enable_c_log = print_c
+                    )
+                    self.update_from_clauses(update_clause * clause_active, literal_active, i, Xu, Yu, weights)      
 
         return
 
