@@ -276,7 +276,6 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
 
         clause_active = self.activate_clauses()
         literal_active = self.activate_literals()
-
         class_index = np.arange(self.number_of_classes, dtype=np.uint32)
 
         total_size = sum(dataset[2] - dataset[1] for dataset in involved_datasets) 
@@ -350,22 +349,23 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
         max_feature = self.calc_max_no_features(number_of_features, target_words_clauses, print_python)
         X_csc = csr_matrix((1, max_feature), dtype=np.int64)
         self.init(X=X_csc, Y=None)
+
         clause_active = self.activate_clauses()
         literal_active = self.activate_literals()
         class_index = np.arange(self.number_of_classes, dtype=np.uint32)
-        self.rng.shuffle(class_index)
-        average_absolute_weights = np.zeros(self.number_of_clauses, dtype=np.float32)
-        for i in class_index:
-            average_absolute_weights += np.absolute(self.weight_banks[i].get_weights())
-        average_absolute_weights /= self.number_of_classes
-        update_clause = self.rng.random(self.number_of_clauses) <= (
-                self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
 
-        for i in class_index:
-            source_clauses, source_clauses_weights, source_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = i)
-
-            weights = None
-            if cross_accumlation:
+        weights = None
+        if cross_accumlation:         
+            self.rng.shuffle(class_index)
+            average_absolute_weights = np.zeros(self.number_of_clauses, dtype=np.float32)
+            for i in class_index:
+                average_absolute_weights += np.absolute(self.weight_banks[i].get_weights())
+            average_absolute_weights /= self.number_of_classes
+            update_clause = self.rng.random(self.number_of_clauses) <= (
+                    self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
+            
+            for i in class_index:
+                source_clauses, source_clauses_weights, source_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = i)
                 for j in class_index[0:number_of_examples + 1]:
                     if i != j:
                         destination_clauses, destination_clauses_weights, destination_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = j)
@@ -383,8 +383,18 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                             enable_c_log = print_c
                         )        
                         self.update_from_clauses(update_clause * clause_active, literal_active, i, Xu, Yu, weights)      
-            else:
+        else:
+            for ex in range(number_of_examples):
+                self.rng.shuffle(class_index)
+                average_absolute_weights = np.zeros(self.number_of_clauses, dtype=np.float32)
+                for i in class_index:
+                    average_absolute_weights += np.absolute(self.weight_banks[i].get_weights())
+                average_absolute_weights /= self.number_of_classes
+                update_clause = self.rng.random(self.number_of_clauses) <= (
+                        self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
+            
                 if weight_insertion:
+                    source_clauses, source_clauses_weights, source_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = i)
                     weights = []
                     number_of_ta_chunks = int(((max_feature * 2) - 1) / 32 + 1)
                     X = np.ascontiguousarray(np.empty(number_of_ta_chunks, dtype=np.uint32))
@@ -407,17 +417,19 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                         weights = None
                     self.update_from_clauses(update_clause * clause_active, literal_active, i, Xu, Yu, weights)      
                 else:
-                    Xu, Yu = self.clause_bank.produce_autoencoder_from_clauses(
-                        target_true_p=self.feature_true_probability[self.output_active[i]],
-                        accumulation=self.accumulation,
-                        number_of_features = max_feature,
-                        source_clauses = source_clauses,
-                        source_clauses_weights = source_clauses_weights,
-                        source_no_columns = int(source_max_columns),
-                        negative_weight_clause = negative_weight_clause,
-                        enable_c_log = print_c
-                    )
-                    self.update_from_clauses(update_clause * clause_active, literal_active, i, Xu, Yu, weights)      
+                    for i in class_index:
+                        clauses, clauses_weights, columns = self.prepare_clauses(target_words_clauses, print_python, target_word = i)
+                        Xu, Yu = self.clause_bank.produce_autoencoder_from_clauses(
+                            target_true_p=self.feature_true_probability[self.output_active[i]],
+                            accumulation=self.accumulation,
+                            number_of_features = max_feature,
+                            clauses = clauses,
+                            clauses_weights = clauses_weights,
+                            columns = int(columns),
+                            negative_weight_clause = negative_weight_clause,
+                            enable_c_log = print_c
+                        )
+                        self.update_from_clauses(update_clause * clause_active, literal_active, i, Xu, Yu, weights)      
 
         return
 

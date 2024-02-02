@@ -139,10 +139,10 @@ void produce_example_by_clauses(
         unsigned int *X,
         int target_value,
         int accumulation,
-		unsigned int *source_clauses,
-		int *source_clauses_weights,
-		int source_rows,
-		int source_columns,
+		unsigned int *clauses,
+		int *clauses_weights,
+		int rows,
+		int columns,
 		int negative_weight_clause,
 		int enable_log
 )
@@ -153,7 +153,7 @@ void produce_example_by_clauses(
 		myPrint(file, "\nStart new accumulation (%d) for target_value (%d) ",accumulation,target_value);
 		
 		int row;
-		int length_of_source = source_rows * source_columns;
+		int length_of_source = rows * columns;
 		int number_of_literals = 2*number_of_features;
 
 		unsigned int number_of_literal_chunks = (number_of_literals-1)/32 + 1;
@@ -165,72 +165,57 @@ void produce_example_by_clauses(
 			X[chunk_nr] |= (1U << chunk_pos);
 		}
 		
-		if (source_columns == 0 || source_rows == 0) {
+		if (columns == 0 || rows == 0) {
 			return;
 		}
 
 		if (target_value) {
 			myPrint(file, "and selected positive clauses is ");
-			for (int i = 0; i < source_rows; i++)
-			{
-				if (source_clauses_weights[i] > 0)
-				{
-					store_clause_to_X(i, source_columns, source_clauses,number_of_features,X);
-					myPrint(file, "S(%d) ",i);
-				}
-			}
-			
-			// int a = 0;
-			// while (a < accumulation) {
-			// 	bool positive_clause = false;
-
-			// 	int random_source_index = (rand() % source_rows);
-			// 	if (source_clauses_weights[random_source_index] > 0)
+			// for (int i = 0; i < rows; i++)
+			// {
+			// 	if (clauses_weights[i] > 0)
 			// 	{
-			// 		store_clause_to_X(random_source_index, source_columns, source_clauses,number_of_features,X);
-			// 		myPrint(file, "S(%d) ",random_source_index);
-			// 		positive_clause = true;
-			// 	}
-
-			// 	if (positive_clause)
-			// 	{
-			// 		a++;
+			// 		store_clause_to_X(i, source_columns, source_clauses,number_of_features,X);
+			// 		myPrint(file, "S(%d) ",i);
 			// 	}
 			// }
+			int a = 0;
+			while (a < accumulation) {
+				int random_index = (rand() % rows);
+				if (clauses_weights[random_index] > 0)
+				{
+					store_clause_to_X(random_index, columns, clauses,number_of_features,X);
+					myPrint(file, "+R(%d) ",random_index);
+					a++;
+				}
+			}
 		} else {
 			myPrint(file, "and selected negative clauses is ");
 			if(negative_weight_clause){
-				for (int i = 0; i < source_rows; i++)
-				{
-					if (source_clauses_weights[i] < 0)
-					{
-						store_clause_to_X(i, source_columns, source_clauses,number_of_features,X);
-						myPrint(file, "S(%d) ",i);
-					}
-				}
-
-				// int a = 0;
-				// while (a < accumulation) {
-				// 	bool negative_clause = false;
-
-				// 	int random_source_index = (rand() % source_rows);
-				// 	if (source_clauses_weights[random_source_index] < 0)
+				// for (int i = 0; i < source_rows; i++)
+				// {
+				// 	if (source_clauses_weights[i] < 0)
 				// 	{
-				// 		store_clause_to_X(random_source_index, source_columns, source_clauses,number_of_features,X);
-				// 		myPrint(file, "S(%d) ",random_source_index);
-				// 		negative_clause = true;
-				// 	}
-				// 	if (negative_clause)
-				// 	{
-				// 		a++;
+				// 		store_clause_to_X(i, source_columns, source_clauses,number_of_features,X);
+				// 		myPrint(file, "S(%d) ",i);
 				// 	}
 				// }
+				int a = 0;
+				while (a < accumulation) {
+					int random_index = (rand() % rows);
+					if (clauses_weights[random_index] < 0)
+					{
+						store_clause_to_X(random_index, columns, clauses,number_of_features,X);
+						myPrint(file, "-R(%d) ",random_index);
+						a++;
+					}
+				}
 			}
 			else{
 				int a = 0;
 				while (a < accumulation) {
 					int r = 0;
-					int total_features = source_columns;
+					int total_features = columns;
 					while (r < total_features){
 						int feature;
 						bool featureExists;
@@ -238,7 +223,7 @@ void produce_example_by_clauses(
 							featureExists = false;
 							feature = rand() % number_of_features;
 							for (int i = 0; i < length_of_source; i++) {
-								if (source_clauses[i] == feature) {
+								if (clauses[i] == feature) {
 									featureExists = true;
 								}
 							}
