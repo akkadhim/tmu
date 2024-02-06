@@ -139,8 +139,10 @@ cmake-build-debug
 cmake-build-release
 examples/autoencoder/jupyter/bbc/
 examples/autoencoder/jupyter/result/
-examples/autoencoder/evaluation/vectorizer_X.pickle
-examples/autoencoder/evaluation/X.pickle
-examples/autoencoder/evaluation/datasets/
-examples/autoencoder/evaluation/result/
-
+examples/autoencoder/evaluation/exp1/datasets/
+examples/autoencoder/evaluation/exp1/result/
+examples/autoencoder/evaluation/exp1/vectorizer_X.pickle
+examples/autoencoder/evaluation/exp1/X.pickle
+examples/autoencoder/evaluation/exp2/datasets/
+examples/autoencoder/evaluation/exp2/vectorizer_X.pickle
+examples/autoencoder/evaluation/exp2/X.pickle
