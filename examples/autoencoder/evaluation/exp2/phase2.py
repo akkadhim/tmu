@@ -1,6 +1,4 @@
 import os
-import pickle
-import datetime
 import numpy as np
 from contextlib import redirect_stdout
 from tqdm import tqdm
@@ -8,11 +6,10 @@ from time import time
 from collections import defaultdict
 from tmu.models.autoencoder.autoencoder import TMAutoEncoder
 from sklearn.metrics.pairwise import cosine_similarity
-from tools import Evaluation_Tools
+from evaluation import Evaluation
+from tools import Tools
+from directories import Dicrectories
 
-def preprocess_text(text):
-    return text
-    
 target_similarity=defaultdict(list)
 clause_weight_threshold = 0
 number_of_examples = 1
@@ -24,32 +21,23 @@ s = 5.0
 accumulation = 50
 epochs = 1
 
-et = Evaluation_Tools()
-vectorizer_X = et.read_pickle_data("vectorizer_X.pickle")
+eval = Evaluation()
+def preprocess_text(text):
+    return text
+vectorizer_X = Tools.read_pickle_data("vectorizer_X.pickle")
+feature_names = vectorizer_X.get_feature_names_out()
+number_of_features = vectorizer_X.get_feature_names_out().shape[0]
 
-folder_path = 'datasets'
-dir_count = 0
-for item in os.listdir(folder_path):
-    item_path = os.path.join(folder_path, item)
-    if os.path.isdir(item_path):
-        dir_count += 1
-dataset_progress_bar = tqdm(total=dir_count, desc="Running Datasets")
-
-for folder_name in os.listdir(folder_path):
-    if folder_name == 'rg-65':
-        current_folder_path = os.path.join(folder_path, folder_name)
+for dataset_name in os.listdir(Dicrectories.datasets):
+    if dataset_name == 'rg-65':
+        current_folder_path = os.path.join(Dicrectories.datasets, dataset_name)
         if os.path.isdir(current_folder_path):
-            files_start_name = os.path.join(current_folder_path, folder_name)
-            pair_list = et.get_dataset_pairs(files_start_name + '.csv')
-            target_words = et.read_pickle_data(files_start_name + '_target.pkl')
-            output_active, feature_names, number_of_features, target_words_clauses = et.read_pickle_data(files_start_name + '_phase1.pkl')
-               
-            current_time = datetime.datetime.now()
-            test_id = current_time.strftime("%Y%m%d%H%M%S")
-            result_filename = f"{folder_name}_cross_phase2_{test_id}"
-            test_start_name = os.path.join(current_folder_path, "tests")
-            result_filepath = os.path.join(test_start_name , result_filename + '.txt')
+            files_start_name = os.path.join(current_folder_path, dataset_name)
+
+            pair_list = Tools.get_dataset_pairs(files_start_name + '.csv')
+            output_active, target_words = Tools.get_targets(files_start_name)
             
+            result_filepath = Dicrectories.test(dataset_name,"cross_phase2")
             with open(result_filepath, 'w') as file, redirect_stdout(file):
                 tm = TMAutoEncoder(clauses, T, s, output_active, max_included_literals=3, accumulation=accumulation, feature_negation=False, platform='CPU', output_balancing=0.5)
                 total_training = 0
@@ -64,13 +52,10 @@ for folder_name in os.listdir(folder_path):
                 for e in range(epochs):
                     print("\nEpoch #: %d" % e)
                     start_training = time()
-                    tm.clauses_fit(
+                    tm.knowledge_fit(
                         number_of_examples = number_of_examples,
                         number_of_features = number_of_features,
-                        target_words_clauses = target_words_clauses,
-                        negative_weight_clause = True,  
-                        cross_accumlation = False,
-                        weight_insertion = False,
+                        dataset_name = dataset_name,
                         print_python = True,
                         print_c = False
                         )
@@ -92,7 +77,7 @@ for folder_name in os.listdir(folder_path):
                         sorted_index = np.argsort(-1*similarity[i,:])
                         for j in range(1, len(target_words)):
                             target_similarity[(target_words[i], target_words[sorted_index[j]])]  = similarity[i,sorted_index[j]]
-                    et.evaluate(target_similarity,pair_list)
+                    eval.calculate(target_similarity,pair_list)
                     
                     epochs_progress_bar.update(1)
                 epochs_progress_bar.close()
@@ -116,17 +101,8 @@ for folder_name in os.listdir(folder_path):
                         print(" - ".join(l))
                     except UnicodeEncodeError:
                         print(" exception ")
-                profile = np.empty((len(target_words), clauses))
-                for i in range(len(target_words)):
-                    weights = tm.get_weights(i)
-                    profile[i,:] = np.where(weights >= clause_weight_threshold, weights, 0)
-                
-                # output= open(files_start_name + '_knowledge_weights.pkl', "wb")
-                # pickle.dump(profile, output)
-                # output.close()
                 
                 print("\n=====================================\nWord Similarity\n=====================================")
-                similarity = cosine_similarity(profile)
                 max_word_length = len(max(target_words, key=len))
                 list_of_words = []
                 target_words_with_min_max = []
@@ -151,14 +127,4 @@ for folder_name in os.listdir(folder_path):
                     list_of_words.append(row_of_similarity)
                     target_words_with_min_max.append(output_line)
 
-                # output= open(files_start_name + '_knowledge_profile_dict.pkl', "wb")
-                # pickle.dump(target_similarity, output)
-                # output.close()
-
-                seconds = total_training
-                hours = seconds // 3600
-                minutes = (seconds % 3600) // 60
-                seconds = seconds % 60
-                print(f"Training duration: {hours} hours, {minutes} minutes, {seconds} seconds")
-    dataset_progress_bar.update(1)
-dataset_progress_bar.close()
+                Tools.print_training_time(total_training)
