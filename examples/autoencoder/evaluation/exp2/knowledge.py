@@ -3,6 +3,7 @@ import numpy as np
 import pickle
 from tmu.models.autoencoder.autoencoder import TMAutoEncoder
 from time import time
+from directories import Dicrectories
 
 class Knowledge:
     def __init__(self, clause_weight_threshold, number_of_examples, accumulation,
@@ -17,7 +18,7 @@ class Knowledge:
         self.s = s
         self.epochs = epochs
 
-    def generate(self, X_train, current_folder_path, i):
+    def generate(self, X_train, dataset_name, i):
         target_word_clauses = []
         single_output_active = np.empty(1, dtype=np.uint32)
         single_output_active[0] = i
@@ -38,9 +39,9 @@ class Knowledge:
                 if tm.get_ta_action(j, k) == 1:
                     related_literals.append(k)
             target_word_clauses.append([weight, related_literals])
-                            
-        knowledge_start_name = os.path.join(current_folder_path, "knowledge")
-        knowledge_filepath = os.path.join(knowledge_start_name , str(i) + '.pkl')
+
+        knowledge_directory = Dicrectories.knowledge(dataset_name)         
+        knowledge_filepath = os.path.join(knowledge_directory , str(i) + '.pkl')
         with open(knowledge_filepath , "wb") as phase1file:
             pickle.dump(target_word_clauses, phase1file)
         return training_time, target_word_clauses

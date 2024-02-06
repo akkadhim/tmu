@@ -15,10 +15,12 @@ class Dicrectories:
         result_filepath = os.path.join(test_start_name , result_filename + '.txt')
         return result_filepath
     
-    def knowledge(dataset_name):
-        # dataset_path = os.path.join(Dicrectories.datasets, dataset_name)
-        # path = os.path.join(dataset_path, "knowledge")
+    def knowledge():
         path = os.path.join(Dicrectories.user_home, "knowledge")
         return  path
+    
+    def pickle_by_id(path, id):
+        return os.path.join(path , str(id) + '.pkl')
+
 
 

@@ -21,6 +21,8 @@ from tmu.weight_bank import WeightBank
 from tmu.models.base import MultiWeightBankMixin, SingleClauseBankMixin, TMBaseModel
 import numpy as np
 from scipy.sparse import csr_matrix, csc_matrix
+from directories import Dicrectories
+from tools import Tools
 
 class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
     def __init__(
@@ -325,6 +327,42 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                     self.update_from_clauses(clause_active * update_clause, literal_active, i, encoded_X, target, weights = None)      
         return
  
+    def knowledge_fit(self, 
+            number_of_examples,
+            number_of_features,
+            print_python = False,
+            print_c = False
+            ):
+        
+        class_index = np.arange(self.number_of_classes, dtype=np.uint32)
+        knowledge_directory = Dicrectories.knowledge()
+        for ex in range(number_of_examples):
+            np.random.shuffle(class_index)
+            for tw in class_index:
+                knowledge_filepath = Dicrectories.pickle_by_id(knowledge_directory , tw)
+                target_word_clauses = Tools.read_pickle_data(knowledge_filepath)
+                target_value = random.randint(0, 1)
+                if target_value == 1:
+                    filtered_clauses = [clause for clause in target_word_clauses if clause[0] > 0]
+                elif target_value == 0:
+                    filtered_clauses = [clause for clause in target_word_clauses if clause[0] < 0]
+                else:
+                    raise ValueError("Invalid target polarity value")
+
+                #loop over random take from filtered clauses
+                #loop over their features
+                #bring their pickles 
+                #take +ve or -ve clauses and combine all clauses
+                #accumlate in c
+
+                max_feature = self.calc_max_no_features(number_of_features, filtered_clauses, print_python)
+                X_csc = csr_matrix((1, max_feature), dtype=np.int64)
+                self.init(X=X_csc, Y=None)
+
+        clause_active = self.activate_clauses()
+        literal_active = self.activate_literals()
+        class_index = np.arange(self.number_of_classes, dtype=np.uint32)
+
     def clauses_fit(
             self, 
             number_of_examples,
