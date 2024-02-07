@@ -324,7 +324,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                                                                     enable_c_log=print_c)         
                 for i in class_index:
                     (target, encoded_X) = Yu[i], Xu[i].reshape((1, -1))
-                    self.update_from_clauses(clause_active * update_clause, literal_active, i, encoded_X, target, weights = None)      
+                    self.update_from_X(clause_active * update_clause, literal_active, i, encoded_X, target, weights = None)      
         return
  
     def knowledge_fit(self, 
@@ -333,35 +333,62 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             print_python = False,
             print_c = False
             ):
-        
+        clause_active = self.activate_clauses()
+        literal_active = self.activate_literals()
+    
         class_index = np.arange(self.number_of_classes, dtype=np.uint32)
-        knowledge_directory = Dicrectories.knowledge()
+        knowledge_directory = Dicrectories.knowledge
         for ex in range(number_of_examples):
-            np.random.shuffle(class_index)
+            
+            self.rng.shuffle(class_index)
+            average_absolute_weights = np.zeros(self.number_of_clauses, dtype=np.float32)
+            for i in class_index:
+                average_absolute_weights += np.absolute(self.weight_banks[i].get_weights())
+            average_absolute_weights /= self.number_of_classes
+            update_clause = self.rng.random(self.number_of_clauses) <= (
+                    self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
+            
             for tw in class_index:
-                knowledge_filepath = Dicrectories.pickle_by_id(knowledge_directory , tw)
-                target_word_clauses = Tools.read_pickle_data(knowledge_filepath)
-                target_value = random.randint(0, 1)
-                if target_value == 1:
-                    filtered_clauses = [clause for clause in target_word_clauses if clause[0] > 0]
-                elif target_value == 0:
-                    filtered_clauses = [clause for clause in target_word_clauses if clause[0] < 0]
-                else:
-                    raise ValueError("Invalid target polarity value")
 
+                number_of_ta_chunks = int(((number_of_features * 2) - 1) / 32 + 1)
+                X = np.ascontiguousarray(np.empty(number_of_ta_chunks, dtype=np.uint32))
+                target_value = random.randint(0, 1)
+                if target_value != 1 and target_value != 0:
+                    break
+
+                tw_knowledge_path = Dicrectories.pickle_by_id(knowledge_directory , tw)
+                tw_all_clauses = Tools.read_pickle_data(tw_knowledge_path)
+                if target_value == 1:
+                    tw_filtered_clauses = [clause for clause in tw_all_clauses if clause[0] > 0]
+                else:
+                    tw_filtered_clauses = [clause for clause in tw_all_clauses if clause[0] < 0]
+
+                tw_clauses_subset = random.sample(tw_filtered_clauses, self.accumulation)
+                for tw_clause in tw_clauses_subset:
+                    related_literals = tw_clause[1]
+                    for literal in related_literals:
+                        literal_knowledge_path = Dicrectories.pickle_by_id(knowledge_directory , literal)
+                        literal_all_clauses = Tools.read_pickle_data(literal_knowledge_path)
+                        if target_value == 1:
+                            literal_filtered_clauses = [clause for clause in literal_all_clauses if clause[0] > 0]
+                        else:
+                            literal_filtered_clauses = [clause for clause in literal_all_clauses if clause[0] < 0]
+                        
+                        literal_clauses_subset = random.sample(literal_filtered_clauses, self.accumulation)
+                        document_of_features = []
+                        for literal_clause in literal_clauses_subset:
+                            literals = literal_clause[1]
+                            for literal in literals:
+                                document_of_features.append(literal)
+                        # save document to x
+                        self.store_to_X(number_of_features, document_of_features, X)
+                
+                self.update_from_X(clause_active * update_clause, literal_active, tw, X, target_value, weights = None)
                 #loop over random take from filtered clauses
                 #loop over their features
                 #bring their pickles 
                 #take +ve or -ve clauses and combine all clauses
                 #accumlate in c
-
-                max_feature = self.calc_max_no_features(number_of_features, filtered_clauses, print_python)
-                X_csc = csr_matrix((1, max_feature), dtype=np.int64)
-                self.init(X=X_csc, Y=None)
-
-        clause_active = self.activate_clauses()
-        literal_active = self.activate_literals()
-        class_index = np.arange(self.number_of_classes, dtype=np.uint32)
 
     def clauses_fit(
             self, 
@@ -420,7 +447,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                             negative_weight_clause = negative_weight_clause,
                             enable_c_log = print_c
                         )        
-                        self.update_from_clauses(update_clause * clause_active, literal_active, i, Xu, Yu, weights)      
+                        self.update_from_X(update_clause * clause_active, literal_active, i, Xu, Yu, weights)      
         else:
             for ex in range(number_of_examples):
                 self.rng.shuffle(class_index)
@@ -453,7 +480,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                     Xu = X.reshape((1, -1))
                     if(ex > 0):
                         weights = None
-                    self.update_from_clauses(update_clause * clause_active, literal_active, i, Xu, Yu, weights)      
+                    self.update_from_X(update_clause * clause_active, literal_active, i, Xu, Yu, weights)      
                 else:
                     for i in class_index:
                         clauses, clauses_weights, columns = self.prepare_clauses(target_words_clauses, print_python, target_word = i)
@@ -467,7 +494,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                             negative_weight_clause = negative_weight_clause,
                             enable_c_log = print_c
                         )
-                        self.update_from_clauses(update_clause * clause_active, literal_active, i, Xu, Yu, weights)      
+                        self.update_from_X(update_clause * clause_active, literal_active, i, Xu, Yu, weights)      
 
         return
 
@@ -516,7 +543,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                     negative_weight_clause = negative_weight_clause,
                     enable_c_log = print_c
                 )        
-                self.update_from_clauses(clause_active * update_clause, literal_active, source, Xu, Yu, weights = None)     
+                self.update_from_X(clause_active * update_clause, literal_active, source, Xu, Yu, weights = None)     
                 Xu, Yu = self.clause_bank.produce_autoencoder_combined(
                     target_true_p=self.feature_true_probability[self.output_active[i]],
                     accumulation=self.accumulation,
@@ -530,7 +557,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                     negative_weight_clause = negative_weight_clause,
                     enable_c_log = print_c
                 )         
-                self.update_from_clauses(clause_active * update_clause, literal_active, destination, Xu, Yu, weights = None)      
+                self.update_from_X(clause_active * update_clause, literal_active, destination, Xu, Yu, weights = None)      
         return
 
     def calc_max_no_features(self, number_of_features, target_words_clauses, print_python):
@@ -551,7 +578,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
         self.custom_print("Maximum feature:", max_feature, enabled = print_python)
         return max_feature
 
-    def update_from_clauses(self, clause_active, literal_active, i, Xu, Yu, weights):
+    def update_from_X(self, clause_active, literal_active, i, Xu, Yu, weights):
         ta_chunk = self.output_active[i] // 32
         chunk_pos = self.output_active[i] % 32
         copy_literal_active_ta_chunk = literal_active[ta_chunk]
