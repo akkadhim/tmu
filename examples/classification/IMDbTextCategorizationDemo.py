@@ -83,6 +83,17 @@ if __name__ == "__main__":
     X_train = SKB.transform(X_train).toarray()
     X_test = SKB.transform(X_test).toarray()
 
+    
+    #each document is set of features and has class either 0 or 1
+    #how to build the document from knowledge
+    #for each tw get its +ve and -ve clauses
+    #from the +ve clauses take the most heigh and then get thier features
+    #from the selected features get also the most heigh clauses
+    #start accumlating the features to form a document and store them along target value 1 if +ve and 0 if -ve
+    #take part for training and part for test
+    #feed the knowledge to the classifer TM
+    #now I have to decide: 1-how many clauses to pick 2-how much for training and testing
+
     _LOGGER.info("Selecting Features.... Done!")
 
     tm = TMClassifier(args.num_clauses, args.T, args.s, platform=args.device, weighted_clauses=args.weighted_clauses,

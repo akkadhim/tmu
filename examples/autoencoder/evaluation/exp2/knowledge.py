@@ -40,8 +40,7 @@ class Knowledge:
                     related_literals.append(k)
             target_word_clauses.append([weight, related_literals])
 
-        knowledge_directory = Dicrectories.knowledge(dataset_name)         
-        knowledge_filepath = os.path.join(knowledge_directory , str(i) + '.pkl')
+        knowledge_filepath = os.path.join(Dicrectories.knowledge , str(i) + '.pkl')
         with open(knowledge_filepath , "wb") as phase1file:
             pickle.dump(target_word_clauses, phase1file)
         return training_time, target_word_clauses

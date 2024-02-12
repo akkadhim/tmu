@@ -4,6 +4,7 @@ import datetime
 class Dicrectories:
     datasets = 'datasets'
     user_home = os.path.expanduser("~")
+    knowledge = os.path.join(user_home, "knowledge")
 
     @staticmethod
     def test(dataset_name,id):
@@ -15,10 +16,6 @@ class Dicrectories:
         result_filepath = os.path.join(test_start_name , result_filename + '.txt')
         return result_filepath
     
-    def knowledge(dataset_name):
-        # dataset_path = os.path.join(Dicrectories.datasets, dataset_name)
-        # path = os.path.join(dataset_path, "knowledge")
-        path = os.path.join(Dicrectories.user_home, "knowledge")
-        return  path
-
+    def pickle_by_id(path, id):
+        return os.path.join(path , str(id) + '.pkl')
 

@@ -333,6 +333,8 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             print_python = False,
             print_c = False
             ):
+        X_csc = csr_matrix((1, number_of_features), dtype=np.int64)
+        self.init(X=X_csc, Y=None)
         clause_active = self.activate_clauses()
         literal_active = self.activate_literals()
     
