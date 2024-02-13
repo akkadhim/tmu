@@ -385,7 +385,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                         # save document to x
                         self.store_to_X(number_of_features, document_of_features, X)
                 
-                self.update_from_X(clause_active * update_clause, literal_active, tw, X, target_value, weights = None)
+                self.update_from_X(clause_active * update_clause, literal_active, index, X, target_value, weights = None)
                 #loop over random take from filtered clauses
                 #loop over their features
                 #bring their pickles 
