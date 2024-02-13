@@ -385,7 +385,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                         # save document to x
                         self.store_to_X(number_of_features, document_of_features, X)
                 
-                self.update_from_X(clause_active * update_clause, literal_active, index, X, target_value, weights = None)
+                self.update_from_X(clause_active * update_clause, literal_active, index, X.reshape((1, -1)), target_value, weights = None)
                 #loop over random take from filtered clauses
                 #loop over their features
                 #bring their pickles 
@@ -464,7 +464,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                     source_clauses, source_clauses_weights, source_max_columns = self.prepare_clauses(target_words_clauses, print_python, target_word = i)
                     weights = []
                     number_of_ta_chunks = int(((max_feature * 2) - 1) / 32 + 1)
-                    X = np.ascontiguousarray(np.empty(number_of_ta_chunks, dtype=np.uint32))
+                    X = np.ascontiguousarray(np.zeros(number_of_ta_chunks, dtype=np.uint32))
                     Yu = random.randint(0, 1)
                     weights_indeces = []
                     if Yu == 1:
