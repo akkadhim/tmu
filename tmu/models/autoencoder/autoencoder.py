@@ -353,7 +353,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             for index in class_index:
                 tw = self.output_active[index]
                 number_of_ta_chunks = int(((number_of_features * 2) - 1) / 32 + 1)
-                X = np.ascontiguousarray(np.empty(number_of_ta_chunks, dtype=np.uint32))
+                X = np.ascontiguousarray(np.zeros(number_of_ta_chunks, dtype=np.uint32))
                 target_value = random.randint(0, 1)
                 if target_value != 1 and target_value != 0:
                     break
