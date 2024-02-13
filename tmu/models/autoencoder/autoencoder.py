@@ -350,8 +350,8 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             update_clause = self.rng.random(self.number_of_clauses) <= (
                     self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
             
-            for tw in class_index:
-
+            for index in class_index:
+                tw = self.output_active[index]
                 number_of_ta_chunks = int(((number_of_features * 2) - 1) / 32 + 1)
                 X = np.ascontiguousarray(np.empty(number_of_ta_chunks, dtype=np.uint32))
                 target_value = random.randint(0, 1)
