@@ -8,25 +8,14 @@ from keras.datasets import imdb
 from sklearn.feature_extraction.text import CountVectorizer
 from tmu.models.classification.vanilla_classifier import TMClassifier
 from tmu.tools import BenchmarkTimer
+import os
+import random
+from directories import Dicrectories
+from tools import Tools
 
 _LOGGER = logging.getLogger(__name__)
 
-if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--num_clauses", default=10000, type=int)
-    parser.add_argument("--T", default=8000, type=int)
-    parser.add_argument("--s", default=2.0, type=float)
-    parser.add_argument("--device", default="GPU", type=str)
-    parser.add_argument("--weighted_clauses", default=True, type=bool)
-    parser.add_argument("--epochs", default=40, type=int)
-    parser.add_argument("--clause_drop_p", default=0.75, type=float)
-    parser.add_argument("--max-ngram", default=2, type=int)
-    parser.add_argument("--features", default=5000, type=int)
-    parser.add_argument("--imdb-num-words", default=5000, type=int)
-    parser.add_argument("--imdb-index-from", default=2, type=int)
-    args = parser.parse_args()
-
+def get_imdb(_LOGGER, args):
     _LOGGER.info("Preparing dataset")
     train, test = keras.datasets.imdb.load_data(num_words=args.imdb_num_words, index_from=args.imdb_index_from)
     train_x, train_y = train
@@ -82,12 +71,78 @@ if __name__ == "__main__":
     selected_features = SKB.get_support(indices=True)
     X_train = SKB.transform(X_train).toarray()
     X_test = SKB.transform(X_test).toarray()
+    return X_train,Y_train,X_test,Y_test
 
+def generate_knowledge(number_of_documents, args):
+    accumulation = 30
+    documents_X = []
+    documents_Y = []
+    user_home = os.path.expanduser("~")
+    knowledge_path = os.path.join(user_home, "knowledge")
+    number_of_ta_chunks = int(((args.features * 2) - 1) / 32 + 1)
     
+    for i in range(number_of_documents):
+        X = np.ascontiguousarray(np.zeros(number_of_ta_chunks, dtype=np.uint32))
+        target_value = random.randint(0, 1)
+        file_list = os.listdir(knowledge_path)
+        file_list = [file for file in file_list if os.path.isfile(os.path.join(knowledge_path, file))] 
+        random_file = random.choice(file_list)
+        
+        tw_knowledge_path = os.path.join(knowledge_path , random_file)
+        tw_all_clauses = Tools.read_pickle_data(tw_knowledge_path)
+        if target_value == 1:
+            tw_filtered_clauses = [clause for clause in tw_all_clauses if clause[0] > 0]
+        else:
+            tw_filtered_clauses = [clause for clause in tw_all_clauses if clause[0] < 0]
+
+        tw_clauses_subset = random.sample(tw_filtered_clauses, accumulation)
+        for tw_clause in tw_clauses_subset:
+            related_literals = tw_clause[1]
+            for literal in related_literals:
+                literal_knowledge_path = Dicrectories.pickle_by_id(knowledge_path , literal)
+                literal_all_clauses = Tools.read_pickle_data(literal_knowledge_path)
+                if target_value == 1:
+                    literal_filtered_clauses = [clause for clause in literal_all_clauses if clause[0] > 0]
+                else:
+                    literal_filtered_clauses = [clause for clause in literal_all_clauses if clause[0] < 0]
+                
+                literal_clauses_subset = random.sample(literal_filtered_clauses, accumulation)
+                document_of_features = []
+                for literal_clause in literal_clauses_subset:
+                    literals = literal_clause[1]
+                    for literal in literals:
+                        document_of_features.append(literal)
+    return documents_X, documents_Y
+
+def get_knowledge(_LOGGER, args):
+    number_of_documents = 25000
+    X_train, Y_train = generate_knowledge(number_of_documents, args)
+    X_test, Y_test = generate_knowledge(number_of_documents, args)
+    return X_train,Y_train,X_test,Y_test
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--num_clauses", default=10000, type=int)
+    parser.add_argument("--T", default=8000, type=int)
+    parser.add_argument("--s", default=2.0, type=float)
+    parser.add_argument("--device", default="GPU", type=str)
+    parser.add_argument("--weighted_clauses", default=True, type=bool)
+    parser.add_argument("--epochs", default=40, type=int)
+    parser.add_argument("--clause_drop_p", default=0.75, type=float)
+    parser.add_argument("--max-ngram", default=2, type=int)
+    parser.add_argument("--features", default=5000, type=int)
+    parser.add_argument("--imdb-num-words", default=5000, type=int)
+    parser.add_argument("--imdb-index-from", default=2, type=int)
+    args = parser.parse_args()
+
+    # X_train, Y_train, X_test, Y_test = get_imdb(_LOGGER, args)
+    X_train, Y_train, X_test, Y_test = get_knowledge(_LOGGER, args)
+
     #each document is set of features and has class either 0 or 1
     #how to build the document from knowledge
     #for each tw get its +ve and -ve clauses
-    #from the +ve clauses take the most heigh and then get thier features
+    #from the +ve clauses take the most heigh and then get thier features. This is a class 1 document
     #from the selected features get also the most heigh clauses
     #start accumlating the features to form a document and store them along target value 1 if +ve and 0 if -ve
     #take part for training and part for test

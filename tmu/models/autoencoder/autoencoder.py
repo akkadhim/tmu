@@ -329,9 +329,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
  
     def knowledge_fit(self, 
             number_of_examples,
-            number_of_features,
-            print_python = False,
-            print_c = False
+            number_of_features
             ):
         X_csc = csr_matrix((1, number_of_features), dtype=np.int64)
         self.init(X=X_csc, Y=None)
@@ -386,11 +384,6 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                         self.store_to_X(number_of_features, document_of_features, X)
                 
                 self.update_from_X(clause_active * update_clause, literal_active, index, X.reshape((1, -1)), target_value, weights = None)
-                #loop over random take from filtered clauses
-                #loop over their features
-                #bring their pickles 
-                #take +ve or -ve clauses and combine all clauses
-                #accumlate in c
 
     def clauses_fit(
             self, 
