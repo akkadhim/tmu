@@ -1,4 +1,3 @@
-import os
 import numpy as np
 import pickle
 from tmu.models.autoencoder.autoencoder import TMAutoEncoder
@@ -40,7 +39,7 @@ class Knowledge:
                     related_literals.append(k)
             target_word_clauses.append([weight, related_literals])
 
-        knowledge_filepath = os.path.join(Dicrectories.knowledge , str(i) + '.pkl')
+        knowledge_filepath = Dicrectories.knowledge_pkl_path_by_id(i)
         with open(knowledge_filepath , "wb") as phase1file:
             pickle.dump(target_word_clauses, phase1file)
         return training_time, target_word_clauses

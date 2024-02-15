@@ -8,7 +8,6 @@ from keras.datasets import imdb
 from sklearn.feature_extraction.text import CountVectorizer
 from tmu.models.classification.vanilla_classifier import TMClassifier
 from tmu.tools import BenchmarkTimer
-import os
 import random
 from directories import Dicrectories
 from tools import Tools
@@ -73,33 +72,49 @@ def get_imdb(_LOGGER, args):
     X_test = SKB.transform(X_test).toarray()
     return X_train,Y_train,X_test,Y_test
 
+def store_to_X(clause, X):
+    for feature in clause:
+        chunk_nr = feature // 32
+        chunk_pos = feature % 32
+        X[chunk_nr] |= (1 << chunk_pos)
+        
 def generate_knowledge(number_of_documents, args):
+    #each document is set of features and has class either 0 or 1
+    #context of document has vote or in case of imdb a user review is either +ve or -ve
+    #how to build the document from knowledge
+    #for each tw get its +ve and -ve clauses
+    #from the +ve clauses take the most heigh and then get thier features. This is a class 1 document
+    #from the selected features get also the most heigh clauses
+    #start accumlating the features to form a document and store them along target value 1 if +ve and 0 if -ve
+    #take part for training and part for test
+    #feed the knowledge to the classifer TM
+    #now I have to decide: 1-how many clauses to pick 2-how much for training and testing
     accumulation = 30
     documents_X = []
     documents_Y = []
-    user_home = os.path.expanduser("~")
-    knowledge_path = os.path.join(user_home, "knowledge")
-    number_of_ta_chunks = int(((args.features * 2) - 1) / 32 + 1)
+    number_of_ta_chunks = int((args.features - 1) / 32 + 1)
     
+    file_list = Dicrectories.get_all_knowledge_files()
+
     for i in range(number_of_documents):
         X = np.ascontiguousarray(np.zeros(number_of_ta_chunks, dtype=np.uint32))
-        target_value = random.randint(0, 1)
-        file_list = os.listdir(knowledge_path)
-        file_list = [file for file in file_list if os.path.isfile(os.path.join(knowledge_path, file))] 
+
         random_file = random.choice(file_list)
-        
-        tw_knowledge_path = os.path.join(knowledge_path , random_file)
+        tw_knowledge_path = Dicrectories.get_knowledge_file(random_file)
         tw_all_clauses = Tools.read_pickle_data(tw_knowledge_path)
+
+        target_value = random.randint(0, 1)
         if target_value == 1:
             tw_filtered_clauses = [clause for clause in tw_all_clauses if clause[0] > 0]
         else:
             tw_filtered_clauses = [clause for clause in tw_all_clauses if clause[0] < 0]
 
         tw_clauses_subset = random.sample(tw_filtered_clauses, accumulation)
+        document_of_features = []
         for tw_clause in tw_clauses_subset:
             related_literals = tw_clause[1]
             for literal in related_literals:
-                literal_knowledge_path = Dicrectories.pickle_by_id(knowledge_path , literal)
+                literal_knowledge_path = Dicrectories.knowledge_pkl_path_by_id(literal)
                 literal_all_clauses = Tools.read_pickle_data(literal_knowledge_path)
                 if target_value == 1:
                     literal_filtered_clauses = [clause for clause in literal_all_clauses if clause[0] > 0]
@@ -107,11 +122,14 @@ def generate_knowledge(number_of_documents, args):
                     literal_filtered_clauses = [clause for clause in literal_all_clauses if clause[0] < 0]
                 
                 literal_clauses_subset = random.sample(literal_filtered_clauses, accumulation)
-                document_of_features = []
                 for literal_clause in literal_clauses_subset:
                     literals = literal_clause[1]
                     for literal in literals:
                         document_of_features.append(literal)
+
+        store_to_X(document_of_features, X)
+        documents_X.append(X)
+        documents_Y.append(target_value)
     return documents_X, documents_Y
 
 def get_knowledge(_LOGGER, args):
@@ -121,7 +139,6 @@ def get_knowledge(_LOGGER, args):
     return X_train,Y_train,X_test,Y_test
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--num_clauses", default=10000, type=int)
     parser.add_argument("--T", default=8000, type=int)
@@ -138,16 +155,6 @@ if __name__ == "__main__":
 
     # X_train, Y_train, X_test, Y_test = get_imdb(_LOGGER, args)
     X_train, Y_train, X_test, Y_test = get_knowledge(_LOGGER, args)
-
-    #each document is set of features and has class either 0 or 1
-    #how to build the document from knowledge
-    #for each tw get its +ve and -ve clauses
-    #from the +ve clauses take the most heigh and then get thier features. This is a class 1 document
-    #from the selected features get also the most heigh clauses
-    #start accumlating the features to form a document and store them along target value 1 if +ve and 0 if -ve
-    #take part for training and part for test
-    #feed the knowledge to the classifer TM
-    #now I have to decide: 1-how many clauses to pick 2-how much for training and testing
 
     _LOGGER.info("Selecting Features.... Done!")
 
@@ -166,3 +173,4 @@ if __name__ == "__main__":
 
         _LOGGER.info(f"Epoch: {epoch + 1}, Accuracy: {result:.2f}, Training Time: {benchmark1.elapsed():.2f}s, "
                      f"Testing Time: {benchmark2.elapsed():.2f}s")
+
