@@ -32,3 +32,9 @@ class Dicrectories:
     def get_knowledge_file(filename):
         return os.path.join(Dicrectories.knowledge , filename)
 
+    @staticmethod
+    def check_pkl(path):
+        if os.path.exists(path):
+            return True
+        else:
+            return False

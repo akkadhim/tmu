@@ -99,7 +99,10 @@ def generate_knowledge(number_of_documents, args):
     for i in range(number_of_documents):
         X = np.ascontiguousarray(np.zeros(number_of_ta_chunks, dtype=np.uint32))
 
-        random_file = random.choice(file_list)
+        while True:
+            random_file = random.choice(file_list)
+            if Dicrectories.check_pkl(random_file):
+                break
         tw_knowledge_path = Dicrectories.get_knowledge_file(random_file)
         tw_all_clauses = Tools.read_pickle_data(tw_knowledge_path)
 
@@ -115,17 +118,18 @@ def generate_knowledge(number_of_documents, args):
             related_literals = tw_clause[1]
             for literal in related_literals:
                 literal_knowledge_path = Dicrectories.knowledge_pkl_path_by_id(literal)
-                literal_all_clauses = Tools.read_pickle_data(literal_knowledge_path)
-                if target_value == 1:
-                    literal_filtered_clauses = [clause for clause in literal_all_clauses if clause[0] > 0]
-                else:
-                    literal_filtered_clauses = [clause for clause in literal_all_clauses if clause[0] < 0]
-                
-                literal_clauses_subset = random.sample(literal_filtered_clauses, accumulation)
-                for literal_clause in literal_clauses_subset:
-                    literals = literal_clause[1]
-                    for literal in literals:
-                        document_of_features.append(literal)
+                if Dicrectories.check_pkl(literal_knowledge_path):
+                    literal_all_clauses = Tools.read_pickle_data(literal_knowledge_path)
+                    if target_value == 1:
+                        literal_filtered_clauses = [clause for clause in literal_all_clauses if clause[0] > 0]
+                    else:
+                        literal_filtered_clauses = [clause for clause in literal_all_clauses if clause[0] < 0]
+                    
+                    literal_clauses_subset = random.sample(literal_filtered_clauses, accumulation)
+                    for literal_clause in literal_clauses_subset:
+                        literals = literal_clause[1]
+                        for literal in literals:
+                            document_of_features.append(literal)
 
         store_to_X(document_of_features, X)
         documents_X.append(X)
