@@ -137,7 +137,7 @@ def generate_knowledge(number_of_documents, args):
     return documents_X, documents_Y
 
 def get_knowledge(_LOGGER, args):
-    number_of_documents = 25000
+    number_of_documents = 2
     X_train, Y_train = generate_knowledge(number_of_documents, args)
     X_test, Y_test = generate_knowledge(number_of_documents, args)
     return X_train,Y_train,X_test,Y_test
