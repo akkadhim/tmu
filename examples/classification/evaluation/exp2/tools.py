@@ -4,6 +4,7 @@ import nltk
 import string
 import pickle
 import numpy as np
+from directories import Dicrectories
 
 nltk.download('stopwords')
 nltk.download('wordnet')
@@ -98,8 +99,8 @@ class Tools:
     @staticmethod
     def tokenize_line(line):
         text = line[0:len(line)-1].strip().split(" ")
-        text= Toos.remove_stopwords(text)
-        text= Toos.preprocess(text)
+        text= Tools.remove_stopwords(text)
+        text= Tools.preprocess(text)
         return text
 
     @staticmethod
@@ -117,7 +118,7 @@ class Tools:
         string = re.sub(r"\)", " \) ", string)
         string = re.sub(r"\?", " \? ", string)
         string = re.sub(r"\s{2,}", " ", string)
-        text = Toos.tokenize_line(string)
+        text = Tools.tokenize_line(string)
         return text
     
     @staticmethod
@@ -148,3 +149,27 @@ class Tools:
         print("word_idx",len(word_idx))
         reverse_word_map = dict(map(reversed, word_idx.items()))
         return word_idx, reverse_word_map
+    
+    @staticmethod
+    def read_pickle_data(path):
+        saved = open(path, "rb")
+        data = pickle.load(saved)
+        saved.close()
+        return data
+    
+    @staticmethod
+    def get_related(word, vectorizer_X,top_weight):
+        if word in vectorizer_X.vocabulary_:
+            knowledge_id = vectorizer_X.vocabulary_[word]
+            if Dicrectories.check_pkl_exist(knowledge_id):
+                knowledge_filepath = Dicrectories.knowledge_pkl_path_by_id(knowledge_id)
+                with open(knowledge_filepath, 'rb') as f:
+                    word_clauses = pickle.load(f)
+                positive_clauses = [clause for clause in word_clauses if clause[0] > 0]
+                sorted_positive_clauses = sorted(positive_clauses, key=lambda x: x[0], reverse=True)[:top_weight]
+                all_literals = [literal for tw_clause in sorted_positive_clauses for literal in tw_clause[1]]
+                feature_names = vectorizer_X.get_feature_names_out()
+                words_for_literals = [feature_names[id] for id in all_literals]
+                return words_for_literals
+
+                        
