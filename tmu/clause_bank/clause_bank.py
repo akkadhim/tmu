@@ -504,14 +504,30 @@ class ClauseBank(BaseClauseBank):
             target_value = random.randint(0, 1)
 
             lib.produce_example_by_clauses(int(number_of_features),
-                                                ffi.cast("unsigned int *", X.ctypes.data),
-                                                int(target_value),
-                                                int(accumulation),
-                                                ffi.cast("unsigned int *", source_clauses_array.ctypes.data),
-                                                ffi.cast("int *", source_clauses_weights_array.ctypes.data),
-                                                int(len(clauses)),
-                                                int(columns),
-                                                int(negative_weight_clause),
-                                                int(enable_c_log))
+                                            ffi.cast("unsigned int *", X.ctypes.data),
+                                            int(target_value),
+                                            int(accumulation),
+                                            ffi.cast("unsigned int *", source_clauses_array.ctypes.data),
+                                            ffi.cast("int *", source_clauses_weights_array.ctypes.data),
+                                            int(len(clauses)),
+                                            int(columns),
+                                            int(negative_weight_clause),
+                                            int(enable_c_log))
 
             return X.reshape((1, -1)), target_value
+
+    def produce_autoencoder_knowledge(
+            self,
+            number_of_features,
+            documents_of_features,
+            enable_c_log
+        ):
+            number_of_ta_chunks = int(((number_of_features * 2) - 1) / 32 + 1)
+            X = np.ascontiguousarray(np.zeros(number_of_ta_chunks, dtype=np.uint32))
+            features = np.ascontiguousarray(documents_of_features, dtype=np.int32)
+            lib.produce_example_by_features(int(number_of_features),
+                                            ffi.cast("unsigned int *", X.ctypes.data),
+                                            ffi.cast("int *", features.ctypes.data),
+                                            int(len(documents_of_features)),
+                                            int(enable_c_log))
+            return X.reshape((1, -1))

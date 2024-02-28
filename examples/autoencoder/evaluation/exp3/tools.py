@@ -11,17 +11,19 @@ class Tools:
         for line in fread_simlex:
             if line_number > 0:
                 tokens = line.split(',')
-                word_i = tokens[1].lower()
-                word_j = tokens[2].lower()
-                score = float(tokens[3].replace('\n', ''))
+                word_i = tokens[0].lower()
+                word_j = tokens[1].lower()
+                score = float(tokens[2].replace('\n', ''))
                 pair_list.append( ((word_i, word_j), score) )
             line_number += 1
         return pair_list
     
     @staticmethod
     def read_pickle_data(path):
-        with open(path, "rb") as saved:
-            return pickle.load(saved)
+        saved = open(path, "rb")
+        data = pickle.load(saved)
+        saved.close()
+        return data
     
     @staticmethod
     def generate_targets(base_path):

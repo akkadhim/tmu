@@ -28,3 +28,11 @@ void produce_example_by_clauses(
 		int negative_weight_clause,
 		int enable_log
 );
+
+void produce_example_by_features(
+		int number_of_features,
+		unsigned int *X,
+		int *features,
+		int involved_features_number,
+		int enable_log
+);

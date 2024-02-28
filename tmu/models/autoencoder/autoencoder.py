@@ -329,11 +329,16 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
  
     def knowledge_fit(self, 
             number_of_examples,
-            number_of_features
+            number_of_features,
+            top_max_clauses = 0,
+            with_clause_update = True,
+            print_c = False
             ):
         X_csc = csr_matrix((1, number_of_features), dtype=np.int64)
         self.init(X=X_csc, Y=None)
+        #all clauses on
         clause_active = self.activate_clauses()
+        #all literal on 32bits of 1 = 4294967295
         literal_active = self.activate_literals()
     
         class_index = np.arange(self.number_of_classes, dtype=np.uint32)
@@ -341,17 +346,19 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
         for ex in range(number_of_examples):
             
             self.rng.shuffle(class_index)
-            average_absolute_weights = np.zeros(self.number_of_clauses, dtype=np.float32)
-            for i in class_index:
-                average_absolute_weights += np.absolute(self.weight_banks[i].get_weights())
-            average_absolute_weights /= self.number_of_classes
-            update_clause = self.rng.random(self.number_of_clauses) <= (
-                    self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
+            if(with_clause_update == True):
+                #array of zeros, length is number of clauses
+                average_absolute_weights = np.zeros(self.number_of_clauses, dtype=np.float32)
+                for i in class_index:
+                    average_absolute_weights += np.absolute(self.weight_banks[i].get_weights())
+                average_absolute_weights /= self.number_of_classes
+                update_clause = self.rng.random(self.number_of_clauses) <= (
+                        self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
+            else:
+                update_clause = np.ones(self.number_of_clauses, dtype=bool)
             
             for index in class_index:
                 tw = self.output_active[index]
-                number_of_ta_chunks = int(((number_of_features * 2) - 1) / 32 + 1)
-                X = np.ascontiguousarray(np.zeros(number_of_ta_chunks, dtype=np.uint32))
                 target_value = random.randint(0, 1)
                 if target_value != 1 and target_value != 0:
                     break
@@ -363,7 +370,12 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                 else:
                     tw_filtered_clauses = [clause for clause in tw_all_clauses if clause[0] < 0]
 
-                tw_clauses_subset = random.sample(tw_filtered_clauses, self.accumulation)
+                if(top_max_clauses > 0):
+                    tw_clauses_subset = sorted(tw_filtered_clauses, key=lambda x: x[0], reverse=True)[:top_max_clauses]
+                else:
+                    tw_clauses_subset = random.sample(tw_filtered_clauses, self.accumulation)
+
+                documents_of_features = []
                 for tw_clause in tw_clauses_subset:
                     related_literals = tw_clause[1]
                     for literal in related_literals:
@@ -374,16 +386,23 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                         else:
                             literal_filtered_clauses = [clause for clause in literal_all_clauses if clause[0] < 0]
                         
-                        literal_clauses_subset = random.sample(literal_filtered_clauses, self.accumulation)
-                        document_of_features = []
+                        if(top_max_clauses > 0):
+                            literal_clauses_subset = sorted(literal_filtered_clauses, key=lambda x: x[0], reverse=True)[:top_max_clauses]
+                        else:
+                            literal_clauses_subset = random.sample(literal_filtered_clauses, self.accumulation)
+
                         for literal_clause in literal_clauses_subset:
                             literals = literal_clause[1]
                             for literal in literals:
-                                document_of_features.append(literal)
-                        # save document to x
-                        self.store_to_X(number_of_features, document_of_features, X)
-                
-                self.update_from_X(clause_active * update_clause, literal_active, index, X.reshape((1, -1)), target_value, weights = None)
+                                documents_of_features.append(literal)
+
+                # save document to x
+                X = self.clause_bank.produce_autoencoder_knowledge(
+                    number_of_features = number_of_features,
+                    documents_of_features = documents_of_features,
+                    enable_c_log = print_c
+                )   
+                self.update_from_X(clause_active * update_clause, literal_active, index, X, target_value, weights = None)
 
     def clauses_fit(
             self, 

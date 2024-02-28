@@ -239,3 +239,22 @@ void produce_example_by_clauses(
 		fclose(file);
 	}
 }
+
+void produce_example_by_features(
+	int number_of_features,
+	unsigned int *X,
+	int *features,
+	int involved_features_number,
+	int enable_log
+){
+	FILE* file = fopen("result/output.txt", "a");
+	if (file != NULL) {
+		enable_printing = enable_log;
+		myPrint(file, "\nStart saving to X with features:(%d) ",involved_features_number);
+		for (int i = 0; i < involved_features_number; i++)
+		{
+			store_feature_to_X(features[i], number_of_features, X, 0);
+		}
+		fclose(file);
+	}
+}
