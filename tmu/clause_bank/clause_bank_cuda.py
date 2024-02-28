@@ -129,6 +129,9 @@ class ImplClauseBankCUDA(BaseClauseBank):
         self.produce_autoencoder_examples_gpu = mod.get_function("produce_autoencoder_example")
         self.produce_autoencoder_examples_gpu.prepare("PPiPPiPPiPiiiPi")
 
+        mod = load_cuda_kernel(parameters, "cuda/tools.cu")
+        self.produce_autoencoder_knowledge_gpu = mod.get_function("produce_autoencoder_knowledge")
+        self.produce_autoencoder_knowledge_gpu.prepare("PiPPi")
         # self.prepare_encode_gpu = mod.get_function("prepare_encode")
         # self.prepare_encode_gpu.prepare("PPiiiiiiii")
 
@@ -434,6 +437,39 @@ class ImplClauseBankCUDA(BaseClauseBank):
         self.cuda_ctx.synchronize()
 
         return X_gpu, target_value
+    
+    def produce_autoencoder_knowledge(
+            self,
+            number_of_features,
+            documents_of_features,
+            **kwargs
+    ):
+        # Log unknown arguments only once
+        for key, value in kwargs.items():
+            if key not in self._logged_unknown_args:
+                self._logged_unknown_args.add(key)
+                _LOGGER.error(
+                    f"Unknown positional argument for {self}: argument_name={key}, argument_value={value}, class={type(self)}")
+                
+        X = np.ascontiguousarray(np.zeros(int(self.number_of_ta_chunks), dtype=np.uint32))
+        X_gpu = self._profiler.profile(cuda.mem_alloc, X.nbytes)
+
+        documents_of_features_gpu = self._profiler.profile(cuda.mem_alloc, documents_of_features.nbytes)
+        self._profiler.profile(cuda.memcpy_htod, documents_of_features_gpu, documents_of_features)
+
+        self.produce_autoencoder_knowledge_gpu.prepared_call(
+            self.grid,
+            self.block,
+            self.rng_gen.state,
+            int(number_of_features),
+            X_gpu,
+            documents_of_features_gpu,
+            int(len(documents_of_features))
+            )
+
+        self.cuda_ctx.synchronize()
+
+        return X_gpu,
 
 
 if cuda_installed:

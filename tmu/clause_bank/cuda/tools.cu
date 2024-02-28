@@ -206,6 +206,35 @@ extern "C++"
 		state[index] = localState;
 	}
 
+	__global__ void produce_autoencoder_knowledge(
+		curandState *state,
+		int number_of_features,
+		unsigned int *X,
+		int *features,
+		int involved_features_number,
+	)
+	{
+		int index = blockIdx.x * blockDim.x + threadIdx.x;
+		int stride = blockDim.x * gridDim.x;
+
+		if (index != 0) {
+			return;
+		}
+
+		/* Copy state to local memory for efficiency */
+    	curandState localState = state[index];
+		for (int k = 0; k < involved_features_number; ++k) {
+			int chunk_nr = features[k] / 32;
+			int chunk_pos = features[k] % 32;
+			X[chunk_nr] |= (1U << chunk_pos);
+
+			chunk_nr = (features[k] + number_of_features) / 32;
+			chunk_pos = (features[k] + number_of_features) % 32;
+			X[chunk_nr] &= ~(1U << chunk_pos);
+		}
+		state[index] = localState;
+	}
+
 	__global__ void prepare_encode(unsigned int *X, unsigned int *encoded_X, int number_of_examples, int dim_x, int dim_y, int dim_z, int patch_dim_x, int patch_dim_y, int append_negated, int class_features)
 	{
 		int index = blockIdx.x * blockDim.x + threadIdx.x;
