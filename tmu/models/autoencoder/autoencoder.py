@@ -330,7 +330,8 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
     def knowledge_fit(self, 
             number_of_examples,
             number_of_features,
-            top_max_clauses = 0,
+            top_max_clauses1 = 0,
+            top_max_clauses2 = 0,
             with_clause_update = True,
             print_c = False
             ):
@@ -370,10 +371,9 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                 else:
                     tw_filtered_clauses = [clause for clause in tw_all_clauses if clause[0] < 0]
 
-                if(top_max_clauses > 0):
-                    tw_clauses_subset = sorted(tw_filtered_clauses, key=lambda x: x[0], reverse=True)[:top_max_clauses]
-                else:
-                    tw_clauses_subset = random.sample(tw_filtered_clauses, self.accumulation)
+                tw_clauses_subset = random.sample(tw_filtered_clauses, self.accumulation)
+                if(top_max_clauses1 > 0):
+                    tw_clauses_subset = sorted(tw_clauses_subset, key=lambda x: x[0], reverse=True)[:top_max_clauses1]
 
                 documents_of_features = []
                 for tw_clause in tw_clauses_subset:
@@ -386,10 +386,9 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                         else:
                             literal_filtered_clauses = [clause for clause in literal_all_clauses if clause[0] < 0]
                         
-                        if(top_max_clauses > 0):
-                            literal_clauses_subset = sorted(literal_filtered_clauses, key=lambda x: x[0], reverse=True)[:top_max_clauses]
-                        else:
-                            literal_clauses_subset = random.sample(literal_filtered_clauses, self.accumulation)
+                        literal_clauses_subset = random.sample(literal_filtered_clauses, self.accumulation)
+                        if(top_max_clauses2 > 0):
+                            literal_clauses_subset = sorted(literal_clauses_subset, key=lambda x: x[0], reverse=True)[:top_max_clauses2]
 
                         for literal_clause in literal_clauses_subset:
                             literals = literal_clause[1]

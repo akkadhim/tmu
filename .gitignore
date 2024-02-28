@@ -148,3 +148,4 @@ examples/autoencoder/evaluation/exp2/vectorizer_X.pickle
 examples/autoencoder/evaluation/exp2/X.pickle
 examples/autoencoder/evaluation/exp3/vectorizer_X.pickle
 examples/autoencoder/evaluation/exp3/datasets/
+examples/autoencoder/evaluation/exp3/result/output.txt
