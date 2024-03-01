@@ -16,6 +16,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 import random
+import array
 from tabulate import tabulate
 from tmu.weight_bank import WeightBank
 from tmu.models.base import MultiWeightBankMixin, SingleClauseBankMixin, TMBaseModel
@@ -23,6 +24,7 @@ import numpy as np
 from scipy.sparse import csr_matrix, csc_matrix
 from directories import Dicrectories
 from tools import Tools
+from db import DB
 
 class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
     def __init__(
@@ -402,6 +404,77 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                     enable_c_log = print_c
                 )   
                 self.update_from_X(clause_active * update_clause, literal_active, index, X, target_value, weights = None)
+
+    def knowledge_fit_sqlite(self, 
+            number_of_examples,
+            number_of_features,
+            top_max_clauses1 = 0,
+            top_max_clauses2 = 0,
+            with_clause_update = True,
+            print_c = False
+            ):
+        X_csc = csr_matrix((1, number_of_features), dtype=np.int64)
+        self.init(X=X_csc, Y=None)
+        #all clauses on
+        clause_active = self.activate_clauses()
+        #all literal on 32bits of 1 = 4294967295
+        literal_active = self.activate_literals()
+    
+        class_index = np.arange(self.number_of_classes, dtype=np.uint32)
+        db = DB('knowledge.db')
+        for ex in range(number_of_examples):
+            
+            self.rng.shuffle(class_index)
+            if(with_clause_update == True):
+                #array of zeros, length is number of clauses
+                average_absolute_weights = np.zeros(self.number_of_clauses, dtype=np.float32)
+                for i in class_index:
+                    average_absolute_weights += np.absolute(self.weight_banks[i].get_weights())
+                average_absolute_weights /= self.number_of_classes
+                update_clause = self.rng.random(self.number_of_clauses) <= (
+                        self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
+            else:
+                update_clause = np.ones(self.number_of_clauses, dtype=bool)
+            
+            for index in class_index:
+                tw = self.output_active[index]
+                target_value = random.randint(0, 1)
+                if target_value != 1 and target_value != 0:
+                    break
+
+                tw_clauses_subset = db.get_clauses_by_token(tw,target_value, self.accumulation)
+                if(top_max_clauses1 > 0):
+                    tw_clauses_subset = sorted(tw_clauses_subset, key=lambda x: x[0], reverse=True)[:top_max_clauses1]
+
+                documents_of_features = []
+                for tw_clause in tw_clauses_subset:
+                    related_literals = self.convert_byte_literals(tw_clause)  
+                     
+                    for literal in related_literals:
+                        literal_clauses_subset = db.get_clauses_by_token(literal, target_value, self.accumulation)
+                        if(top_max_clauses2 > 0):
+                            literal_clauses_subset = sorted(literal_clauses_subset, key=lambda x: x[0], reverse=True)[:top_max_clauses2]
+
+                        for literal_clause in literal_clauses_subset:
+                            literals = self.convert_byte_literals(literal_clause)   
+                            for literal in literals:
+                                documents_of_features.append(literal)
+
+                # save document to x
+                X = self.clause_bank.produce_autoencoder_knowledge(
+                    number_of_features = number_of_features,
+                    documents_of_features = documents_of_features,
+                    enable_c_log = print_c
+                )   
+                self.update_from_X(clause_active * update_clause, literal_active, index, X, target_value, weights = None)
+        db.close_connection()
+
+    def convert_byte_literals(self, tw_clause):
+        literals_bytes = tw_clause[1]
+        literals_array = array.array('h')
+        literals_array.frombytes(literals_bytes) 
+        related_literals = list(literals_array)
+        return related_literals
 
     def clauses_fit(
             self, 
