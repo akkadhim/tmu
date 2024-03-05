@@ -447,18 +447,20 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                     tw_clauses_subset = sorted(tw_clauses_subset, key=lambda x: x[0], reverse=True)[:top_max_clauses1]
 
                 documents_of_features = []
-                for tw_clause in tw_clauses_subset:
-                    related_literals = self.convert_byte_literals(tw_clause)  
-                     
-                    for literal in related_literals:
-                        literal_clauses_subset = db.get_clauses_by_token(literal, target_value, self.accumulation)
-                        if(top_max_clauses2 > 0):
-                            literal_clauses_subset = sorted(literal_clauses_subset, key=lambda x: x[0], reverse=True)[:top_max_clauses2]
+                related_literals = []
+                [related_literals.extend(self.convert_byte_literals(tw_clause)) for tw_clause in tw_clauses_subset]
 
-                        for literal_clause in literal_clauses_subset:
-                            literals = self.convert_byte_literals(literal_clause)   
-                            for literal in literals:
-                                documents_of_features.append(literal)
+                # for tw_clause in tw_clauses_subset:
+                #     related_literals.append(self.convert_byte_literals(tw_clause))
+                
+                literal_clauses_subset = db.get_clauses_by_tokens(related_literals,target_value,self.accumulation)
+                if(top_max_clauses2 > 0):
+                    literal_clauses_subset = sorted(literal_clauses_subset, key=lambda x: x[0], reverse=True)[:top_max_clauses2]
+
+                for literal_clause in literal_clauses_subset:
+                    literals = self.convert_byte_literals(literal_clause)   
+                    for literal in literals:
+                        documents_of_features.append(literal)
 
                 # save document to x
                 X = self.clause_bank.produce_autoencoder_knowledge(
