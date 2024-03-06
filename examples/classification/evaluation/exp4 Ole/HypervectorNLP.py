@@ -102,7 +102,7 @@ class HypervectorNLP:
     @staticmethod
     def apply_simulated_annealing(clauses, T, s, X_train, X_test, Y_train, Y_test):
         tm = TMClassifier(clauses, T, s, platform='CUDA')
-        print("\nAccuracy over 40 epochs:\n")
+        print("Accuracy over 40 epochs:")
         for i in range(40):
             start_training = time()
             tm.fit(X_train, Y_train)

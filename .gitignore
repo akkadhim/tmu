@@ -152,3 +152,4 @@ examples/autoencoder/evaluation/exp3/result/output.txt
 examples/autoencoder/evaluation/sqlite/knowledge.db
 examples/autoencoder/evaluation/exp3/knowledge.db
 examples/classification/evaluation/exp2/vectorizer_X.pickle
+examples/classification/evaluation/exp4 Ole/tests/
