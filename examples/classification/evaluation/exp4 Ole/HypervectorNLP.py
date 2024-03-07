@@ -8,21 +8,23 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import chi2
 from tmu.models.classification.vanilla_classifier import TMClassifier
+from scipy.sparse import lil_matrix
 
 class HypervectorNLP:
     @staticmethod
     def generate_encoding_hypervector(hypervector_size, bits, FEATURES):
         # print("Producing encoding...")
         encoding = np.zeros((FEATURES, hypervector_size), dtype=np.uint32)
+        #from 0 tp HV size
         indexes = np.arange(hypervector_size, dtype=np.uint32)
         for i in range(FEATURES):
             selection = np.random.choice(indexes, size=(bits))
             encoding[i][selection] = 1
-        hash_value =  np.zeros(hypervector_size, dtype=np.uint32)
 
-        for i in range(FEATURES):
-            one_ids = encoding[i].nonzero()[0]
-            hash_value[i] = hash(one_ids.tobytes()) % (2 ** 29 - 1)
+        # hash_value =  np.zeros(hypervector_size, dtype=np.uint32)
+        # for i in range(FEATURES):
+        #     one_ids = encoding[i].nonzero()[0]
+        #     hash_value[i] = hash(one_ids.tobytes()) % (2 ** 29 - 1)
         return encoding
 
     @staticmethod
@@ -79,6 +81,8 @@ class HypervectorNLP:
         X_train = np.zeros((train_y.shape[0], hypervector_size), dtype=np.uint32)
         Y_train = np.zeros(train_y.shape[0], dtype=np.uint32)
         for i in range(train_y.shape[0]):
+            #get ith document and then call it nonzeros features and loop over them
+            #for each feature integrate it's relvant features from HV in ith document 
             for word_id in X_train_org.getrow(i).indices:
                 X_train[i] = np.logical_or(X_train[i], encoding[word_id])
             Y_train[i] = train_y[i]
@@ -88,6 +92,19 @@ class HypervectorNLP:
         for i in range(test_y.shape[0]):
             for word_id in X_test_org.getrow(i).indices:
                 X_test[i] = np.logical_or(X_test[i], encoding[word_id])
+            Y_test[i] = test_y[i]
+        return X_train,X_test,Y_train,Y_test
+    
+    @staticmethod
+    def encode_arrays(train_y, test_y, X_train_org, X_test_org):
+        X_train = X_train_org.toarray()
+        Y_train = np.zeros(train_y.shape[0], dtype=np.uint32)
+        for i in range(train_y.shape[0]):
+            Y_train[i] = train_y[i]
+
+        X_test = X_test_org.toarray()
+        Y_test = np.zeros(test_y.shape[0], dtype=np.uint32)
+        for i in range(test_y.shape[0]):
             Y_test[i] = test_y[i]
         return X_train,X_test,Y_train,Y_test
     
