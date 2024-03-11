@@ -17,24 +17,5 @@ class Dicrectories:
         return result_filepath
     
     @staticmethod
-    def knowledge_pkl_path_by_id(id, path = None):
-        if path == None:
-            path = Dicrectories.knowledge
+    def pickle_by_id(path, id):
         return os.path.join(path , str(id) + '.pkl')
-    
-    @staticmethod
-    def get_all_knowledge_files():
-        files = os.listdir(Dicrectories.knowledge)
-        files = [file for file in files if os.path.isfile(os.path.join(Dicrectories.knowledge, file))] 
-        return files
-    
-    @staticmethod
-    def get_knowledge_file(filename):
-        return os.path.join(Dicrectories.knowledge , filename)
-
-    @staticmethod
-    def check_pkl(path):
-        if os.path.exists(path):
-            return True
-        else:
-            return False
