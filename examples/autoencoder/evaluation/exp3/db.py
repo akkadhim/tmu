@@ -44,3 +44,42 @@ class DB:
     
     def close_connection(self):
         self._conn.close()
+
+
+import redis
+
+class DB:
+    def __init__(self, db_name):
+        self._db_name = db_name
+        self._conn = redis.Redis()
+
+    def get_clauses_by_token(self, token, target_value, accumlation):
+        if target_value == 1:
+            operator = '> 0'
+        else:
+            operator = '< 0'
+
+        clauses = self._conn.execute_command(
+            'SELECT weight, literals FROM clauses WHERE token = ? AND weight {} ORDER BY RAND() LIMIT ?'.format(operator),
+            token,
+            accumlation
+        )
+        return clauses
+    
+    def get_clauses_by_tokens(self, tokens, target_value, accumlation):
+        if target_value == 1:
+            operator = '> 0'
+        else:
+            operator = '< 0'
+
+        # Create a comma-separated string of tokens for use in the Redis command
+        token_string = ','.join(str(token) for token in tokens)
+
+        clauses = self._conn.execute_command(
+            'SELECT weight, literals FROM clauses WHERE token IN ({}) AND weight {} ORDER BY RAND() LIMIT ?'.format(token_string, operator),
+            accumlation
+        )
+        return clauses
+    
+    def close_connection(self):
+        self._conn.close()
