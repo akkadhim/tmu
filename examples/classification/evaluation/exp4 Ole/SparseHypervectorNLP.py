@@ -117,7 +117,7 @@ class HypervectorNLP:
         return result_filepath
     
     @staticmethod
-    def apply_simulated_annealing(clauses, T, s, X_train, X_test, Y_train, Y_test):
+    def apply_tsetlin_machine(clauses, T, s, X_train, X_test, Y_train, Y_test):
         tm = TMClassifier(clauses, T, s, platform='CUDA')
         print("Accuracy over 40 epochs:")
         for i in range(40):
@@ -130,4 +130,3 @@ class HypervectorNLP:
             stop_testing = time()
 
             print("#%d Accuracy: %.2f%% Training: %.2fs Testing: %.2fs" % (i+1, result, round(stop_training-start_training, 2), round(stop_testing-start_testing, 2)))
-
