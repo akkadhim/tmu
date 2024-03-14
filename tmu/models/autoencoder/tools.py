@@ -1,6 +1,7 @@
 import codecs
 import pickle
 import numpy as np
+from functools import lru_cache
 
 class Tools:
     @staticmethod
@@ -19,6 +20,7 @@ class Tools:
         return pair_list
     
     @staticmethod
+    @lru_cache(maxsize=None)
     def read_pickle_data(path):
         with open(path, "rb") as saved:
             return pickle.load(saved)
