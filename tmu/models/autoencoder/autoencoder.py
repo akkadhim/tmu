@@ -332,6 +332,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
     def knowledge_fit(self, 
             number_of_examples,
             number_of_features,
+            sub_accumulation,
             top_max_clauses1 = 0,
             top_max_clauses2 = 0,
             with_clause_update = True,
@@ -363,8 +364,6 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             for index in class_index:
                 tw = self.output_active[index]
                 target_value = random.randint(0, 1)
-                if target_value != 1 and target_value != 0:
-                    break
 
                 tw_knowledge_path = Dicrectories.pickle_by_id(knowledge_directory , tw)
                 tw_all_clauses = Tools.read_pickle_data(tw_knowledge_path)
@@ -381,6 +380,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                 for tw_clause in tw_clauses_subset:
                     related_literals = tw_clause[1]
                     for literal in related_literals:
+                        documents_of_features.append(literal)
                         literal_knowledge_path = Dicrectories.pickle_by_id(knowledge_directory , literal)
                         literal_all_clauses = Tools.read_pickle_data(literal_knowledge_path)
                         if target_value == 1:
@@ -388,14 +388,14 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                         else:
                             literal_filtered_clauses = [clause for clause in literal_all_clauses if clause[0] < 0]
                         
-                        literal_clauses_subset = random.sample(literal_filtered_clauses, self.accumulation)
+                        literal_clauses_subset = random.sample(literal_filtered_clauses, sub_accumulation)
                         if(top_max_clauses2 > 0):
                             literal_clauses_subset = sorted(literal_clauses_subset, key=lambda x: x[0], reverse=True)[:top_max_clauses2]
 
                         for literal_clause in literal_clauses_subset:
                             literals = literal_clause[1]
-                            for literal in literals:
-                                documents_of_features.append(literal)
+                            for sub_literal in literals:
+                                documents_of_features.append(sub_literal)
 
                 # save document to x
                 X = self.clause_bank.produce_autoencoder_knowledge(
