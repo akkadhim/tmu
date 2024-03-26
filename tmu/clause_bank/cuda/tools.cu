@@ -211,7 +211,7 @@ extern "C++"
 		int number_of_features,
 		unsigned int *X,
 		int *features,
-		int involved_features_number,
+		int involved_features_number
 	)
 	{
 		int index = blockIdx.x * blockDim.x + threadIdx.x;
