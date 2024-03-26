@@ -128,8 +128,6 @@ class ImplClauseBankCUDA(BaseClauseBank):
         mod = load_cuda_kernel(parameters, "cuda/tools.cu")
         self.produce_autoencoder_examples_gpu = mod.get_function("produce_autoencoder_example")
         self.produce_autoencoder_examples_gpu.prepare("PPiPPiPPiPiiiPi")
-
-        mod = load_cuda_kernel(parameters, "cuda/tools.cu")
         self.produce_autoencoder_knowledge_gpu = mod.get_function("produce_autoencoder_knowledge")
         self.produce_autoencoder_knowledge_gpu.prepare("PiPPi")
         # self.prepare_encode_gpu = mod.get_function("prepare_encode")
