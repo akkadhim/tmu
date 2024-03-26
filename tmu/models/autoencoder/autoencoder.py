@@ -336,6 +336,8 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             top_max_clauses1 = 0,
             top_max_clauses2 = 0,
             with_clause_update = True,
+            true_weight = 0.5,
+            false_weight = 0.5,
             print_c = False
             ):
         X_csc = csr_matrix((1, number_of_features), dtype=np.int64)
@@ -349,6 +351,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
         knowledge_directory = Dicrectories.knowledge
         for ex in range(number_of_examples):
             
+            target_values = random.choices([0, 1], weights=[false_weight,true_weight], k=self.number_of_classes)
             self.rng.shuffle(class_index)
             if(with_clause_update == True):
                 #array of zeros, length is number of clauses
@@ -358,12 +361,10 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                 average_absolute_weights /= self.number_of_classes
                 update_clause = self.rng.random(self.number_of_clauses) <= (
                         self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
-            else:
-                update_clause = np.ones(self.number_of_clauses, dtype=bool)
             
             for index in class_index:
                 tw = self.output_active[index]
-                target_value = random.randint(0, 1)
+                target_value = target_values[index]
 
                 tw_knowledge_path = Dicrectories.pickle_by_id(knowledge_directory , tw)
                 tw_all_clauses = Tools.read_pickle_data(tw_knowledge_path)
@@ -403,7 +404,11 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                     documents_of_features = documents_of_features,
                     enable_c_log = print_c
                 )   
-                self.update_from_X(clause_active * update_clause, literal_active, index, X, target_value, weights = None)
+                if(with_clause_update == True):
+                    self.update_from_X(clause_active * update_clause, literal_active, index, X, target_value, weights = None)
+                else:
+                    self.update_from_X(clause_active, literal_active, index, X, target_value, weights = None)
+
 
     def knowledge_fit_sqlite(self, 
             number_of_examples,
