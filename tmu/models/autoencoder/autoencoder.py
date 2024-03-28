@@ -338,6 +338,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             with_clause_update = True,
             true_weight = 0.5,
             false_weight = 0.5,
+            shuffle_classes = True,
             print_c = False
             ):
         X_csc = csr_matrix((1, number_of_features), dtype=np.int64)
@@ -352,7 +353,10 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
         for ex in range(number_of_examples):
             
             target_values = random.choices([0, 1], weights=[false_weight,true_weight], k=self.number_of_classes)
-            self.rng.shuffle(class_index)
+
+            if shuffle_classes == True:
+                self.rng.shuffle(class_index)
+            
             if(with_clause_update == True):
                 #array of zeros, length is number of clauses
                 average_absolute_weights = np.zeros(self.number_of_clauses, dtype=np.float32)
@@ -365,38 +369,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             for index in class_index:
                 tw = self.output_active[index]
                 target_value = target_values[index]
-
-                tw_knowledge_path = Dicrectories.pickle_by_id(knowledge_directory , tw)
-                tw_all_clauses = Tools.read_pickle_data(tw_knowledge_path)
-                if target_value == 1:
-                    tw_filtered_clauses = [clause for clause in tw_all_clauses if clause[0] > 0]
-                else:
-                    tw_filtered_clauses = [clause for clause in tw_all_clauses if clause[0] < 0]
-
-                tw_clauses_subset = random.sample(tw_filtered_clauses, self.accumulation)
-                if(top_max_clauses1 > 0):
-                    tw_clauses_subset = sorted(tw_clauses_subset, key=lambda x: x[0], reverse=True)[:top_max_clauses1]
-
-                documents_of_features = []
-                for tw_clause in tw_clauses_subset:
-                    related_literals = tw_clause[1]
-                    for literal in related_literals:
-                        documents_of_features.append(literal)
-                        literal_knowledge_path = Dicrectories.pickle_by_id(knowledge_directory , literal)
-                        literal_all_clauses = Tools.read_pickle_data(literal_knowledge_path)
-                        if target_value == 1:
-                            literal_filtered_clauses = [clause for clause in literal_all_clauses if clause[0] > 0]
-                        else:
-                            literal_filtered_clauses = [clause for clause in literal_all_clauses if clause[0] < 0]
-                        
-                        literal_clauses_subset = random.sample(literal_filtered_clauses, sub_accumulation)
-                        if(top_max_clauses2 > 0):
-                            literal_clauses_subset = sorted(literal_clauses_subset, key=lambda x: x[0], reverse=True)[:top_max_clauses2]
-
-                        for literal_clause in literal_clauses_subset:
-                            literals = literal_clause[1]
-                            for sub_literal in literals:
-                                documents_of_features.append(sub_literal)
+                documents_of_features = self.get_features(sub_accumulation, top_max_clauses1, top_max_clauses2, knowledge_directory, tw, target_value)
 
                 # save document to x
                 X = self.clause_bank.produce_autoencoder_knowledge(
@@ -409,6 +382,95 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                 else:
                     self.update_from_X(clause_active, literal_active, index, X, target_value, weights = None)
 
+    def knowledge_pair_fit(self, 
+            number_of_examples,
+            number_of_features,
+            sub_accumulation,
+            top_max_clauses1 = 0,
+            top_max_clauses2 = 0,
+            with_clause_update = True,
+            true_weight = 0.5,
+            false_weight = 0.5,
+            shuffle_classes = True,
+            print_c = False
+            ):
+        X_csc = csr_matrix((1, number_of_features), dtype=np.int64)
+        self.init(X=X_csc, Y=None)
+        #all clauses on
+        clause_active = self.activate_clauses()
+        #all literal on 32bits of 1 = 4294967295
+        literal_active = self.activate_literals()
+    
+        class_index = np.arange(self.number_of_classes, dtype=np.uint32)
+        knowledge_directory = Dicrectories.knowledge
+        for ex in range(number_of_examples):
+            
+            target_values = random.choices([0, 1], weights=[false_weight,true_weight], k=self.number_of_classes)
+
+            if shuffle_classes == True:
+                self.rng.shuffle(class_index)
+
+            if(with_clause_update == True):
+                #array of zeros, length is number of clauses
+                average_absolute_weights = np.zeros(self.number_of_clauses, dtype=np.float32)
+                for i in class_index:
+                    average_absolute_weights += np.absolute(self.weight_banks[i].get_weights())
+                average_absolute_weights /= self.number_of_classes
+                update_clause = self.rng.random(self.number_of_clauses) <= (
+                        self.T - np.clip(average_absolute_weights, 0, self.T)) / self.T
+            
+            for index in class_index:
+                tw = self.output_active[index]
+                target_value = target_values[index]
+                documents_of_features = self.get_features(sub_accumulation, top_max_clauses1, top_max_clauses2, knowledge_directory, tw, target_value)
+                
+                if (index + 1) < len(self.output_active):
+                    next_tw = self.output_active[index + 1]
+                    documents_of_features.extend(self.get_features(sub_accumulation, top_max_clauses1, top_max_clauses2, knowledge_directory, next_tw, target_value))
+                # save document to x
+                X = self.clause_bank.produce_autoencoder_knowledge(
+                    number_of_features = number_of_features,
+                    documents_of_features = documents_of_features,
+                    enable_c_log = print_c
+                )   
+                if(with_clause_update == True):
+                    self.update_from_X(clause_active * update_clause, literal_active, index, X, target_value, weights = None)
+                else:
+                    self.update_from_X(clause_active, literal_active, index, X, target_value, weights = None)
+
+    def get_features(self, sub_accumulation, top_max_clauses1, top_max_clauses2, knowledge_directory, tw, target_value):
+        tw_knowledge_path = Dicrectories.pickle_by_id(knowledge_directory , tw)
+        tw_all_clauses = Tools.read_pickle_data(tw_knowledge_path)
+        if target_value == 1:
+            tw_filtered_clauses = [clause for clause in tw_all_clauses if clause[0] > 0]
+        else:
+            tw_filtered_clauses = [clause for clause in tw_all_clauses if clause[0] < 0]
+
+        tw_clauses_subset = random.sample(tw_filtered_clauses, self.accumulation)
+        if(top_max_clauses1 > 0):
+            tw_clauses_subset = sorted(tw_clauses_subset, key=lambda x: x[0], reverse=True)[:top_max_clauses1]
+
+        documents_of_features = []
+        for tw_clause in tw_clauses_subset:
+            related_literals = tw_clause[1]
+            for literal in related_literals:
+                documents_of_features.append(literal)
+                literal_knowledge_path = Dicrectories.pickle_by_id(knowledge_directory , literal)
+                literal_all_clauses = Tools.read_pickle_data(literal_knowledge_path)
+                if target_value == 1:
+                    literal_filtered_clauses = [clause for clause in literal_all_clauses if clause[0] > 0]
+                else:
+                    literal_filtered_clauses = [clause for clause in literal_all_clauses if clause[0] < 0]
+                        
+                literal_clauses_subset = random.sample(literal_filtered_clauses, sub_accumulation)
+                if(top_max_clauses2 > 0):
+                    literal_clauses_subset = sorted(literal_clauses_subset, key=lambda x: x[0], reverse=True)[:top_max_clauses2]
+
+                for literal_clause in literal_clauses_subset:
+                    literals = literal_clause[1]
+                    for sub_literal in literals:
+                        documents_of_features.append(sub_literal)
+        return documents_of_features
 
     def knowledge_fit_sqlite(self, 
             number_of_examples,
