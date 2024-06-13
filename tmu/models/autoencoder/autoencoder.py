@@ -333,6 +333,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             number_of_examples,
             number_of_features,
             sub_accumulation,
+            neg_length,
             top_max_clauses1 = 0,
             top_max_clauses2 = 0,
             with_clause_update = True,
@@ -369,7 +370,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             for index in class_index:
                 tw = self.output_active[index]
                 target_value = target_values[index]
-                documents_of_features = self.get_features(sub_accumulation, top_max_clauses1, top_max_clauses2, knowledge_directory, tw, target_value)
+                documents_of_features = self.get_features(sub_accumulation, top_max_clauses1, top_max_clauses2, knowledge_directory, tw, target_value,neg_length)
 
                 # save document to x
                 X = self.clause_bank.produce_autoencoder_knowledge(
@@ -386,6 +387,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             number_of_examples,
             number_of_features,
             sub_accumulation,
+            neg_length,
             top_max_clauses1 = 0,
             top_max_clauses2 = 0,
             with_clause_update = True,
@@ -422,11 +424,11 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             for index in class_index:
                 tw = self.output_active[index]
                 target_value = target_values[index]
-                documents_of_features = self.get_features(sub_accumulation, top_max_clauses1, top_max_clauses2, knowledge_directory, tw, target_value)
+                documents_of_features = self.get_features(sub_accumulation, top_max_clauses1, top_max_clauses2, knowledge_directory, tw, target_value,neg_length)
                 
                 if (index + 1) < len(self.output_active):
                     next_tw = self.output_active[index + 1]
-                    documents_of_features.extend(self.get_features(sub_accumulation, top_max_clauses1, top_max_clauses2, knowledge_directory, next_tw, target_value))
+                    documents_of_features.extend(self.get_features(sub_accumulation, top_max_clauses1, top_max_clauses2, knowledge_directory, next_tw, target_value,neg_length))
                 # save document to x
                 X = self.clause_bank.produce_autoencoder_knowledge(
                     number_of_features = number_of_features,
@@ -438,13 +440,17 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                 else:
                     self.update_from_X(clause_active, literal_active, index, X, target_value, weights = None)
 
-    def get_features(self, sub_accumulation, top_max_clauses1, top_max_clauses2, knowledge_directory, tw, target_value):
+    def get_features(self, sub_accumulation, top_max_clauses1, top_max_clauses2, knowledge_directory, tw, target_value, neg_length):
         tw_knowledge_path = Dicrectories.pickle_by_id(knowledge_directory , tw)
         tw_all_clauses = Tools.read_pickle_data(tw_knowledge_path)
         if target_value == 1:
             tw_filtered_clauses = [clause for clause in tw_all_clauses if clause[0] > 0]
         else:
             tw_filtered_clauses = [clause for clause in tw_all_clauses if clause[0] < 0]
+
+            tw_filtered_clauses = [
+                (clause[0], clause[1][:neg_length]) for clause in tw_filtered_clauses
+            ]
 
         tw_clauses_subset = random.sample(tw_filtered_clauses, self.accumulation)
         if(top_max_clauses1 > 0):
@@ -461,7 +467,12 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                     literal_filtered_clauses = [clause for clause in literal_all_clauses if clause[0] > 0]
                 else:
                     literal_filtered_clauses = [clause for clause in literal_all_clauses if clause[0] < 0]
-                        
+
+                    literal_filtered_clauses = [
+                        (clause[0], clause[1][:neg_length]) for clause in literal_filtered_clauses
+                    ]
+                                  
+                sub_accumulation = min(sub_accumulation, len(literal_filtered_clauses))      
                 literal_clauses_subset = random.sample(literal_filtered_clauses, sub_accumulation)
                 if(top_max_clauses2 > 0):
                     literal_clauses_subset = sorted(literal_clauses_subset, key=lambda x: x[0], reverse=True)[:top_max_clauses2]
