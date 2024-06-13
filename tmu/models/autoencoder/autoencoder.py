@@ -22,8 +22,8 @@ from tmu.weight_bank import WeightBank
 from tmu.models.base import MultiWeightBankMixin, SingleClauseBankMixin, TMBaseModel
 import numpy as np
 from scipy.sparse import csr_matrix, csc_matrix
-from directories import Dicrectories
-from tools import Tools
+from DirectoriesUtil import Dicrectories
+from Tools import Tools
 from db import DB
 
 class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
