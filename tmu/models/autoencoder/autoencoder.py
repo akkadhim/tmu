@@ -23,8 +23,6 @@ from tmu.models.base import MultiWeightBankMixin, SingleClauseBankMixin, TMBaseM
 import numpy as np
 from scipy.sparse import csr_matrix, csc_matrix
 from DirectoriesUtil import Dicrectories
-from Tools import Tools
-from db import DB
 
 class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
     def __init__(
@@ -334,6 +332,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             number_of_features,
             sub_accumulation,
             neg_length,
+            tools,
             top_max_clauses1 = 0,
             top_max_clauses2 = 0,
             with_clause_update = True,
@@ -350,7 +349,6 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
         literal_active = self.activate_literals()
     
         class_index = np.arange(self.number_of_classes, dtype=np.uint32)
-        knowledge_directory = Dicrectories.knowledge
         for ex in range(number_of_examples):
             
             target_values = random.choices([0, 1], weights=[false_weight,true_weight], k=self.number_of_classes)
@@ -370,7 +368,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             for index in class_index:
                 tw = self.output_active[index]
                 target_value = target_values[index]
-                documents_of_features = self.get_features(sub_accumulation, top_max_clauses1, top_max_clauses2, knowledge_directory, tw, target_value,neg_length)
+                documents_of_features = self.get_features(tools, sub_accumulation, top_max_clauses1, top_max_clauses2, tw, target_value,neg_length)
 
                 # save document to x
                 X = self.clause_bank.produce_autoencoder_knowledge(
@@ -388,6 +386,7 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             number_of_features,
             sub_accumulation,
             neg_length,
+            tools,
             top_max_clauses1 = 0,
             top_max_clauses2 = 0,
             with_clause_update = True,
@@ -404,7 +403,6 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
         literal_active = self.activate_literals()
     
         class_index = np.arange(self.number_of_classes, dtype=np.uint32)
-        knowledge_directory = Dicrectories.knowledge
         for ex in range(number_of_examples):
             
             target_values = random.choices([0, 1], weights=[false_weight,true_weight], k=self.number_of_classes)
@@ -424,11 +422,11 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
             for index in class_index:
                 tw = self.output_active[index]
                 target_value = target_values[index]
-                documents_of_features = self.get_features(sub_accumulation, top_max_clauses1, top_max_clauses2, knowledge_directory, tw, target_value,neg_length)
+                documents_of_features = self.get_features(tools, sub_accumulation, top_max_clauses1, top_max_clauses2, tw, target_value,neg_length)
                 
                 if (index + 1) < len(self.output_active):
                     next_tw = self.output_active[index + 1]
-                    documents_of_features.extend(self.get_features(sub_accumulation, top_max_clauses1, top_max_clauses2, knowledge_directory, next_tw, target_value,neg_length))
+                    documents_of_features.extend(self.get_features(tools, sub_accumulation, top_max_clauses1, top_max_clauses2, next_tw, target_value,neg_length))
                 # save document to x
                 X = self.clause_bank.produce_autoencoder_knowledge(
                     number_of_features = number_of_features,
@@ -440,9 +438,12 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
                 else:
                     self.update_from_X(clause_active, literal_active, index, X, target_value, weights = None)
 
-    def get_features(self, sub_accumulation, top_max_clauses1, top_max_clauses2, knowledge_directory, tw, target_value, neg_length):
-        tw_knowledge_path = Dicrectories.pickle_by_id(knowledge_directory , tw)
-        tw_all_clauses = Tools.read_pickle_data(tw_knowledge_path)
+    def get_features(self, tools, sub_accumulation, top_max_clauses1, top_max_clauses2, tw, target_value, neg_length):
+        documents_of_features = []
+        tw_all_clauses = tools.read_knowledge_data(tw)
+        if tw_all_clauses == None:
+            return documents_of_features
+        
         if target_value == 1:
             tw_filtered_clauses = [clause for clause in tw_all_clauses if clause[0] > 0]
         else:
@@ -456,13 +457,11 @@ class TMAutoEncoder(TMBaseModel, SingleClauseBankMixin, MultiWeightBankMixin):
         if(top_max_clauses1 > 0):
             tw_clauses_subset = sorted(tw_clauses_subset, key=lambda x: x[0], reverse=True)[:top_max_clauses1]
 
-        documents_of_features = []
         for tw_clause in tw_clauses_subset:
             related_literals = tw_clause[1]
             for literal in related_literals:
                 documents_of_features.append(literal)
-                literal_knowledge_path = Dicrectories.pickle_by_id(knowledge_directory , literal)
-                literal_all_clauses = Tools.read_pickle_data(literal_knowledge_path)
+                literal_all_clauses = tools.read_knowledge_data(tw)
                 if target_value == 1:
                     literal_filtered_clauses = [clause for clause in literal_all_clauses if clause[0] > 0]
                 else:
